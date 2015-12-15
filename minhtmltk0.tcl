@@ -154,7 +154,8 @@ snit::widget minhtmltk {
 
     #========================================
     variable myFormList {}
-    variable myFormDict -array {}
+    variable myFormNameDict -array {}
+    # XXX: myFormPathDict も有るべきか？ selector から逆引きしやすいように…
     variable myOuterForm ""
 
     method {form list} {} {
@@ -162,7 +163,7 @@ snit::widget minhtmltk {
     }
 
     method {form names} {args} {
-	array names myFormDict {*}$args
+	array names myFormNameDict {*}$args
     }
 
     method {form get} {ix {fallback yes}} {
@@ -176,15 +177,16 @@ snit::widget minhtmltk {
 		lindex $myFormList $ix
 	    }
 	} elseif {[regexp ^@(.*) $ix -> name]} {
-	    set myFormDict($name)
+	    set myFormNameDict($name)
 	} else {
+	    # XXX: ix に css selector を渡せても良いのでは。
 	    error "Invalid form index: $ix"
 	}
     }
 
     method {form of-node} {node} {
 	set name [$node attr -default "" name]
-	set vn myFormDict($name)
+	set vn myFormNameDict($name)
 	if {[info exists $vn]} {
 	    error [list form name=$name appeared twice!]
 	}
@@ -234,13 +236,29 @@ snit::widget minhtmltk {
 		set t [text $path.text -width [$node attr -default 60 cols]\
 			   -height [$node attr -default 10 rows]]
 		$path setwidget $t
+
+		set item [$form item register node single $node \
+			      [node-atts-assign $node name value]]
+		set var [$form item var $item]
+		trace add variable $var read \
+		    [list $self variable textarea read $t $item]
+		trace add variable $var write \
+		    [list $self variable textarea write $t $item]
+
 		set contents {}
 		foreach kid [$node children] {
 		    append contents [$kid text -pre]
 		}
-		$t insert end $contents
+		set $var $contents
 	    }
 	}
+    }
+    method {variable textarea read} {text item varName keyName args} {
+	set [set varName]($keyName) [$text get 1.0 end-1c]
+    }
+    method {variable textarea write} {text item varName keyName args} {
+	$text delete 1.0 end
+	$text insert end [set [set varName]($keyName)]
     }
 
     method {add by-input-type} node {
