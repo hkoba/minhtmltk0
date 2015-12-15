@@ -42,7 +42,7 @@ source [file dirname [info script]]/formstate.tcl
 
 snit::widget minhtmltk {
     component myHtml -public document -inherit yes
-    variable myStyleList
+    variable stateStyleList
     
     option -encoding ""
 
@@ -80,16 +80,30 @@ snit::widget minhtmltk {
 	}
     }
     
-    variable myLocation ""
+    #----------------------------------------
+    
+    variable stateHtmlSource ""
+    method parse args {
+	append stateHtmlSource [lindex $args end]
+	$myHtml parse {*}$args
+    }
+
+    method {state source} {} {
+	set stateHtmlSource
+    }
+
+    variable stateLocation ""
     method replace_location_html {uri html} {
 	$self Reset
-	set myLocation $uri
-	$myHtml parse -final $html
+	set stateLocation $uri
+	$self parse -final $html
     }
 
     method Reset {} {
 	$myHtml reset
-	set myStyleList ""
+	foreach stVar [info vars ${selfns}::state* {
+	    set $stVar ""
+	}
     }
     
     method read_file {fn args} {
@@ -250,8 +264,8 @@ snit::widget minhtmltk {
 	# media, type
 	regsub {^\s*<!--} $data {} data
 	regsub -- {-->\s*$} $data {} data
-	lappend myStyleList $data
-	set id author.[format %.4d [llength $myStyleList]]
+	lappend stateStyleList $data
+	set id author.[format %.4d [llength $stateStyleList]]
 	$myHtml style -id $id \
 	    [string map [list \r ""] $data]
     }
