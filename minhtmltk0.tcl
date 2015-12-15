@@ -98,20 +98,21 @@ snit::widget minhtmltk {
 	}
     }
 
-    method {add node textarea} node {
+    method {with path-of} {node command} {
+	upvar 1 path path
 	set path [$self node path $node]
-	widget::scrolledwindow $path
-	set t [text $path.text -width [$node attr -default 60 cols]\
-		   -height [$node attr -default 10 rows]]
-	$path setwidget $t
-	set contents {}
-	foreach kid [$node children] {
-	    append contents [$kid text -pre]
-	}
-	$t insert end $contents
-	
-	$node replace $path -deletecmd [list destroy $path]	
+	uplevel 1 $command
+	$node replace $path -deletecmd [list destroy $path]
     }
+
+    method {node path} node {
+	if {[set id [$node attr -default "" id]] eq ""} {
+	    set id [string map {: _} $node]
+	}
+	return $myHtml._$id
+    }
+
+    #========================================
 
     method {add script style} {atts data} {
 	# media, type
@@ -123,17 +124,25 @@ snit::widget minhtmltk {
 	    [string map [list \r ""] $data]
     }
 
-    method {node path} node {
-	if {[set id [$node attr -default "" id]] eq ""} {
-	    set id [string map {: _} $node]
+    method {add node textarea} node {
+	$self with path-of $node {
+	    widget::scrolledwindow $path
+	    set t [text $path.text -width [$node attr -default 60 cols]\
+		       -height [$node attr -default 10 rows]]
+	    $path setwidget $t
+	    set contents {}
+	    foreach kid [$node children] {
+		append contents [$kid text -pre]
+	    }
+	    $t insert end $contents
 	}
-	return $myHtml._$id
     }
 
     method {add by-input-type} node {
-	$self add input [$node attr -default text] \
-	    [set path [$self node path $node]] $node
-	$node replace $path -deletecmd [list destroy $path]
+	$self with path-of $node {
+	    $self add input [$node attr -default text] \
+		$path $node
+	}
     }
 
     method {add input text} {path node args} {
