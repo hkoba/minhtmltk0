@@ -26,6 +26,8 @@ snit::type ::minhtmltk::formstate {
 	labelList {}
 	nodeList {}
 	optList {}
+	gettable no
+	disabled no
     }
     
     typemethod {slot names} {} {
@@ -34,6 +36,20 @@ snit::type ::minhtmltk::formstate {
 
     method names {} {
 	set myNameList
+    }
+
+    method get {} {
+	set result {}
+	foreach name [$self names] {
+	    set item [$self item of-name $name]
+	    if {![$self item is gettable $item]} continue
+	    lappend result $name [$item get]
+	}
+	set result
+    }
+
+    method {item is gettable} item {
+	set ${item}(gettable)
     }
 
     # Each form variable has array with same name, prefixed by '#'.
@@ -80,11 +96,49 @@ snit::type ::minhtmltk::formstate {
 	} else {
 	    set $vn $kind
 	}
+	if {[llength [$self info methods [list item $kind get]]]} {
+	    set ${item}(gettable) yes
+	    interp alias {} $item \
+		{} apply [list {self kind item method args} {
+		    $self item $kind $method $item {*}$args
+		}] $self $kind $item
+	}
 	dict set ${item}(value2IxDict) $value [llength ${item}(valueList)]
 	lappend ${item}(valueList) $value
 	lappend ${item}(labelList) [dict-cut opts label ""]
 	lappend ${item}(nodeList) $node
 	lappend ${item}(optList) $opts
 	set item
+    }
+    
+    method {item single get} {item {default ""}} {
+	if {[set val [set [$self item var $item]]] ne ""} {
+	    set val
+	} else {
+	    set default
+	}
+    }
+    method {item single set} {item value} {
+	set [$self item var $item] $value
+    }
+    method {item multi get} {item} {
+	set result {}
+	foreach value [$self item valuelist $item] {
+	    if {[set [$self item var $item $value]]} {
+		lappend result $value
+	    }
+	}
+    }
+    method {item multi set} {item args} {
+	set knownValuesDict ${item}(value2IxDict)
+	foreach value $args {
+	    if {[dict exists $knownValuesDict $value]} {
+		set [$self item var $item $value] 1
+		dict remove knownValuesDict $value
+	    }
+	}
+	foreach value $knownValuesDict {
+	    set [$self item var $item $value] 0	    
+	}
     }
 }

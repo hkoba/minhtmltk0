@@ -101,7 +101,7 @@ snit::widget minhtmltk {
 
     method Reset {} {
 	$myHtml reset
-	foreach stVar [info vars ${selfns}::state* {
+	foreach stVar [info vars ${selfns}::state*] {
 	    set $stVar ""
 	}
     }
@@ -150,7 +150,9 @@ snit::widget minhtmltk {
 	upvar 1 path path
 	set path [$self node path $node]
 	uplevel 1 $command
-	$node replace $path -deletecmd [list destroy $path]
+	if {$path ne ""} {
+	    $node replace $path -deletecmd [list destroy $path]
+	}
     }
 
     method {node path} node {
@@ -167,9 +169,10 @@ snit::widget minhtmltk {
     # extract attr (like [lassign]) returns [dict]
     proc node-atts-assign {node args} {
 	set _atts {}
-	foreach _key $args {
+	foreach _spec $args {
+	    lassign $_spec _key _default
 	    upvar 1 $_key _upvar
-	    set value [$node attr -default "" $_key]
+	    set value [$node attr -default $_default $_key]
 	    lappend _atts $_key $value
 	    set _upvar $value
 	}
@@ -178,9 +181,12 @@ snit::widget minhtmltk {
 
     #========================================
     # logging... hmm...
-    variable myParseErrors ""
-    method raise error {
-	lappend myParseErrors [list $error]
+    variable stateParseErrors ""
+    method {error add} error {
+	lappend stateParseErrors $error
+    }
+    method {error raise} error {
+	lappend stateParseErrors $error
 	error $error
     }
 
@@ -257,6 +263,19 @@ snit::widget minhtmltk {
 
     #========================================
 
+    variable stateTriggerDict -array {}
+    method on {event command} {
+	set vn stateTriggerDict($event)
+	set $vn $command
+    }
+    method trigger {event args} {
+	set vn stateTriggerDict($event)
+	if {![info exists $vn]} return
+	{*}[set $vn] {*}$args
+    }
+
+    #========================================
+
     #
     # <script>
     #
@@ -311,8 +330,14 @@ snit::widget minhtmltk {
     method {add by-input-type} node {
 	$self with form {
 	    $self with path-of $node {
-		$self add input [$node attr -default text] \
-		    $path $node $form
+		set t [$node attr -default text type]
+		set methName [list add input $t]
+		if {[llength [$self info methods $methName]]} {
+		    $self {*}$methName $path $node $form
+		} else {
+		    $self error add [list unknown input-type $t $node]
+		    set path ""; # To avoid $node replace $path
+		}
 	    }
 	}
     }
@@ -335,6 +360,13 @@ snit::widget minhtmltk {
 	set text [$node attr -default [from args -text] value]
 	ttk::button $path -takefocus 1 -text $text {*}$args
     }
+	
+    method {add input submit} {path node form args} {
+	set item [$form item register node submit $node \
+		      [node-atts-assign $node name {value Submit}]]
+	ttk::button $path -takefocus 1 -text $value \
+	    -command [list $self trigger submit $form $name] {*}$args
+    }
 
     method {add input checkbox} {path node form args} {
 	set item [$form item register node multi $node \
@@ -342,12 +374,14 @@ snit::widget minhtmltk {
 	set var [$form item var $item $value]
 	if {[$node attr -default "no" checked] ne "no"} {
 	    set $var 1
+	} else {
+	    set $var 0
 	}
 	ttk::checkbutton $path -variable $var
     }
 
     method {add input radio} {path node form args} {
-	set item [$form item register node multi $node \
+	set item [$form item register node single $node \
 		      [node-atts-assign $node name value]]
 	set var [$form item var $item]
 	if {[$node attr -default "no" checked] ne "no"} {
@@ -357,7 +391,7 @@ snit::widget minhtmltk {
     }
 
     method {add input hidden} {path node form args} {
-	set item [$form item register node multi $node \
+	set item [$form item register node single $node \
 		      [node-atts-assign $node name value]]
 	set var [$form item var $item]
 	set $var $value
