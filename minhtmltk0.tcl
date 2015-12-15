@@ -7,6 +7,39 @@ package require Tkhtml 3
 package require snit
 package require widget::scrolledwindow
 
+namespace eval ::minhtmltk {
+    proc dict-cut {dictVar key args} {
+	upvar 1 $dictVar dict
+	if {[dict exists $dict $key]} {
+	    set res [dict get $dict $key]
+	    dict unset dict $key
+	    set res
+	} elseif {[llength $args]} {
+	    lindex $args 0
+	} else {
+	    error "No such key: $key"
+	}
+    }
+
+    proc parsePosixOpts {varName {dict {}}} {
+	upvar 1 $varName opts
+
+	for {} {[llength $opts]
+		&& [regexp {^--?([\w\-]+)(?:(=)(.*))?} [lindex $opts 0] \
+			-> name eq value]} {set opts [lrange $opts 1 end]} {
+	    if {$eq eq ""} {
+		set value 1
+	    }
+	    dict set dict -$name $value
+	}
+	set dict
+    }
+    
+    namespace export *
+}
+
+source [file dirname [info script]]/formstate.tcl
+
 snit::widget minhtmltk {
     component myHtml -public document -inherit yes
     variable myStyleList
@@ -112,6 +145,76 @@ snit::widget minhtmltk {
 	return $myHtml._$id
     }
 
+    variable myParseErrors ""
+    #========================================
+    method raise error {
+	lappend myParseErrors [list $error]
+	error $error
+    }
+
+    #========================================
+    variable myFormList {}
+    variable myFormDict -array {}
+    variable myOuterForm ""
+
+    method {form list} {} {
+	set myFormList
+    }
+
+    method {form names} {args} {
+	array names myFormDict {*}$args
+    }
+
+    method {form get} {ix {fallback yes}} {
+	if {[string is integer $ix]} {
+	    if {$ix == 0 && ![llength $myFormList]} {
+		if {!$fallback} {
+		    error "No form tag!"
+		}
+		set myOuterForm
+	    } else {
+		lindex $myFormList $ix
+	    }
+	} elseif {[regexp ^@(.*) $ix -> name]} {
+	    set myFormDict($name)
+	} else {
+	    error "Invalid form index: $ix"
+	}
+    }
+
+    method {form of-node} {node} {
+	set name [$node attr -default "" name]
+	set vn myFormDict($name)
+	if {[info exists $vn]} {
+	    error [list form name=$name appeared twice!]
+	}
+
+	set form [$self form new $name -action [$node attr -default "" action] \
+		     -node $node]
+	lappend myFormList $form
+	set $vn $form
+    }
+    
+    method {with form} command {
+	upvar 1 form form
+	set form [$self form current]
+	uplevel 1 $command
+    }
+    
+    method {form current} {} {
+	if {[llength $myFormList]} {
+	    lindex $myFormList end
+	} elseif {$myOuterForm ne ""} {
+	    set myOuterForm
+	} else {
+	    set myOuterForm [$self form new ""]
+	}
+    }
+
+    method {form new} {name args} {
+	formstate $self.form%AUTO% -name $name {*}$args
+    }
+
     #========================================
 
     method {add script style} {atts data} {
@@ -125,58 +228,85 @@ snit::widget minhtmltk {
     }
 
     method {add node textarea} node {
-	$self with path-of $node {
-	    widget::scrolledwindow $path
-	    set t [text $path.text -width [$node attr -default 60 cols]\
-		       -height [$node attr -default 10 rows]]
-	    $path setwidget $t
-	    set contents {}
-	    foreach kid [$node children] {
-		append contents [$kid text -pre]
+	$self with form {
+	    $self with path-of $node {
+		widget::scrolledwindow $path
+		set t [text $path.text -width [$node attr -default 60 cols]\
+			   -height [$node attr -default 10 rows]]
+		$path setwidget $t
+		set contents {}
+		foreach kid [$node children] {
+		    append contents [$kid text -pre]
+		}
+		$t insert end $contents
 	    }
-	    $t insert end $contents
 	}
     }
 
     method {add by-input-type} node {
-	$self with path-of $node {
-	    $self add input [$node attr -default text] \
-		$path $node
+	$self with form {
+	    $self with path-of $node {
+		$self add input [$node attr -default text] \
+		    $path $node $form
+	    }
 	}
     }
 
-    method {add input text} {path node args} {
-	::ttk::entry $path \
-	    -width [$node attr -default 20 size] {*}$args
-	$path delete 0 end
-	$path insert end [$node attr -default "" value]
+    proc node-atts-assign {node args} {
+	set _atts {}
+	foreach _key $args {
+	    upvar 1 $_key _upvar
+	    set value [$node attr -default "" $_key]
+	    lappend _atts $_key $value
+	    set _upvar $value
+	}
+	set _atts
     }
 
-    method {add input button} {path node args} {
+    method {add input text} {path node form args} {
+	set item [$form item register node single $node \
+		      [node-atts-assign $node name value]]
+	set var [$form item var $item]
+	set $var $value
+	::ttk::entry $path \
+	    -textvariable $var \
+	    -width [$node attr -default 20 size] {*}$args
+    }
+
+    method {add input password} {path node form args} {
+	$self add input text $path $node $form -show * {*}$args
+    }
+
+    method {add input button} {path node form args} {
 	set text [$node attr -default [from args -text] value]
 	ttk::button $path -takefocus 1 -text $text {*}$args
     }
 
-    method {add input checkbox} {path node args} {
-	ttk::checkbutton $path
-    }
-
-    method {add input radio} {path node args} {
-	ttk::radiobutton $path
-    }
-
-    proc parsePosixOpts {varName {dict {}}} {
-	upvar 1 $varName opts
-
-	for {} {[llength $opts]
-		&& [regexp {^--?([\w\-]+)(?:(=)(.*))?} [lindex $opts 0] \
-			-> name eq value]} {set opts [lrange $opts 1 end]} {
-	    if {$eq eq ""} {
-		set value 1
-	    }
-	    dict set dict -$name $value
+    method {add input checkbox} {path node form args} {
+	set item [$form item register node multi $node \
+		      [node-atts-assign $node name value]]
+	set var [$form item var $item $value]
+	if {[$node attr -default "no" checked] ne "no"} {
+	    set $var 1
 	}
-	set dict
+	ttk::checkbutton $path -variable $var
+    }
+
+    method {add input radio} {path node form args} {
+	set item [$form item register node multi $node \
+		      [node-atts-assign $node name value]]
+	set var [$form item var $item]
+	if {[$node attr -default "no" checked] ne "no"} {
+	    set $var $value
+	}
+	ttk::radiobutton $path -variable $var -value $value
+    }
+
+    method {add input hidden} {path node form args} {
+	set item [$form item register node multi $node \
+		      [node-atts-assign $node name value]]
+	set var [$form item var $item]
+	set $var $value
     }
 }
 
