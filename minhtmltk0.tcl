@@ -106,7 +106,7 @@ snit::widget minhtmltk {
     # HTML Tag handling
     #========================================
 
-    option -handle-parse ; #[list form]
+    option -handle-parse [list form]
     option -handle-script [list style]
     option -handle-node [list textarea]
     # To be handled
@@ -177,6 +177,10 @@ snit::widget minhtmltk {
     variable myFormNameDict -array {}
     # XXX: myFormPathDict も有るべきか？ selector から逆引きしやすいように…
     variable myOuterForm ""
+
+    method {add parse form} {node args} {
+	$self form of-node $node
+    }
 
     method {form list} {} {
 	set myFormList
