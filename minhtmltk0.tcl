@@ -75,10 +75,10 @@ snit::widget minhtmltk {
 
     option -handle-parse ; #[list form]
     option -handle-script [list style]
-    # option -handle-node [list input button]
+    option -handle-node [list textarea]
     list {
 	a link
-	input textarea select button
+	textarea select button
 	iframe menu
 	base meta title object embed
     }
@@ -87,7 +87,7 @@ snit::widget minhtmltk {
 	
 	$myHtml handler node input [list $self add by-input-type]
 
-	foreach kind {parse script} {
+	foreach kind {parse script node} {
 	    foreach tag $options(-handle-$kind) {
 		set meth [list add $kind $tag]
 		if {![llength [$self info methods $meth]]} {
@@ -96,6 +96,21 @@ snit::widget minhtmltk {
 		$myHtml handler $kind $tag [list $self {*}$meth]
 	    }
 	}
+    }
+
+    method {add node textarea} node {
+	set path [$self node path $node]
+	widget::scrolledwindow $path
+	set t [text $path.text -width [$node attr -default 60 cols]\
+		   -height [$node attr -default 10 rows]]
+	$path setwidget $t
+	set contents {}
+	foreach kid [$node children] {
+	    append contents [$kid text -pre]
+	}
+	$t insert end $contents
+	
+	$node replace $path -deletecmd [list destroy $path]	
     }
 
     method {add script style} {atts data} {
@@ -124,6 +139,8 @@ snit::widget minhtmltk {
     method {add input text} {path node args} {
 	::ttk::entry $path \
 	    -width [$node attr -default 20 size] {*}$args
+	$path delete 0 end
+	$path insert end [$node attr -default "" value]
     }
 
     method {add input button} {path node args} {
