@@ -109,6 +109,7 @@ snit::widget minhtmltk {
     option -handle-parse ; #[list form]
     option -handle-script [list style]
     option -handle-node [list textarea]
+    # To be handled
     list {
 	a link
 	textarea select button
@@ -145,13 +146,32 @@ snit::widget minhtmltk {
 	return $myHtml._$id
     }
 
-    variable myParseErrors ""
     #========================================
+    # node utils
+    #========================================
+
+    # extract attr (like [lassign]) returns [dict]
+    proc node-atts-assign {node args} {
+	set _atts {}
+	foreach _key $args {
+	    upvar 1 $_key _upvar
+	    set value [$node attr -default "" $_key]
+	    lappend _atts $_key $value
+	    set _upvar $value
+	}
+	set _atts
+    }
+
+    #========================================
+    # logging... hmm...
+    variable myParseErrors ""
     method raise error {
 	lappend myParseErrors [list $error]
 	error $error
     }
 
+    #========================================
+    # form (formstate)
     #========================================
     variable myFormList {}
     variable myFormNameDict -array {}
@@ -219,6 +239,9 @@ snit::widget minhtmltk {
 
     #========================================
 
+    #
+    # <script>
+    #
     method {add script style} {atts data} {
 	# media, type
 	regsub {^\s*<!--} $data {} data
@@ -229,6 +252,9 @@ snit::widget minhtmltk {
 	    [string map [list \r ""] $data]
     }
 
+    #
+    # <textarea>
+    #
     method {add node textarea} node {
 	$self with form {
 	    $self with path-of $node {
@@ -261,6 +287,9 @@ snit::widget minhtmltk {
 	$text insert end [set [set varName]($keyName)]
     }
 
+    #----------------------------------------
+    # <input type=...>
+    #----------------------------------------
     method {add by-input-type} node {
 	$self with form {
 	    $self with path-of $node {
@@ -268,17 +297,6 @@ snit::widget minhtmltk {
 		    $path $node $form
 	    }
 	}
-    }
-
-    proc node-atts-assign {node args} {
-	set _atts {}
-	foreach _key $args {
-	    upvar 1 $_key _upvar
-	    set value [$node attr -default "" $_key]
-	    lappend _atts $_key $value
-	    set _upvar $value
-	}
-	set _atts
     }
 
     method {add input text} {path node form args} {
