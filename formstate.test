@@ -27,7 +27,7 @@ set i 0
 test $P-create "" -body {
     set form [$type %AUTO%]
     list [$form cget -name] [$form cget -action] [$form cget -node] \
-	[$form names] [$form get]
+        [$form names] [$form get]
 } -result [list "" "" "" "" ""]
 
 
@@ -36,12 +36,13 @@ test $P-item-text-[incr i] "" -body {
     
     set name dummy$d
     set item [$form item register node single  \
-		  node-$name [list name $name editable yes]]
+                  node-$name [list name $name value ""]]
     
-    set rc0 [catch {$item get}]
-    set rc [$item get outval]
-    list $rc0 $rc [info exists outval]
-} -result [list 1 0 0]
+    set res ""
+    lappend res [$item get]
+    lappend res [$item get outval]
+    lappend res [info exists outval]
+} -result [list "" 1 1]
 
 lappend t_names $name
 #----------------------------------------
@@ -69,8 +70,8 @@ test $P-item-radio-[incr i] "" -body {
     
     set result {}
     for {set i 1} {$i <= 3} {incr i} {
-	set item [$form item register node single  \
-		      node-$name [list name $name value $i]]
+        set item [$form item register node single  \
+                      node-$name [list name $name value $i has-choice yes]]
     }
     
     $item get outval
@@ -83,8 +84,8 @@ test $P-item-radio-[incr i] "" -body {
     
     set result {}
     for {set i 1} {$i <= 3} {incr i} {
-	$item set $i
-	lappend result [list [$item get v] $v]
+        $item set $i
+        lappend result [list [$item get v] $v]
     }
     set result
 } -result {{1 1} {1 2} {1 3}}
@@ -99,8 +100,8 @@ test $P-item-checkbox-[incr i] "" -body {
     
     set result {}
     for {set i 1} {$i <= 3} {incr i} {
-	set item [$form item register node multi  \
-		      node-$name [list name $name value $i]]
+        set item [$form item register node multi  \
+                      node-$name [list name $name value $i has-choice yes]]
     }
     
     $item get outval
@@ -113,8 +114,8 @@ test $P-item-checkbox-[incr i] "" -body {
     
     set result {}
     for {set i 1} {$i <= 3} {incr i} {
-	$item set {*}[iota1 $i]
-	lappend result [$item get]
+        $item set [iota1 $i]
+        lappend result [$item get]
     }
     set result
 } -result {1 {1 2} {1 2 3}}
@@ -125,4 +126,3 @@ lappend t_pairs $name {1 2 3}
 test $P-item-checkbox-[incr i] "" -body {
     $form get
 } -result $t_pairs
-

@@ -31,9 +31,12 @@ snit::type ::minhtmltk::formstate {
         optList {}
         gettable no
         disabled no
-        editable no
+        has-choice no
     }
     
+    # has-choice denotes it has predefined list of choices.
+    # if this is false, value could be anything (free answer).
+
     typemethod {slot names} {} {
         array names ourItemSlots
     }
@@ -66,13 +69,17 @@ snit::type ::minhtmltk::formstate {
     method {item is gettable} item { set ${item}(gettable) }
 
     # Each form variable has array with same name, prefixed by '#'.
-    method {item of-name} {name {kind ""}} {
+    method {item of-name} {name {kind ""} {has_choice ""}} {
         set vn myNameDict($name)
         if {[info exists $vn]} {
             set item [set $vn]
             set oldKind [set ${item}(type)]
             if {$kind ne "" && $oldKind ne $kind} {
                 error "item type mismatch! was:'$oldKind' new:'$kind' for name=$name"
+            }
+            set oldHasChoice [set ${item}(has-choice)]
+            if {$has_choice ne "" && $oldHasChoice ne $has_choice} {
+                error "item property(has-choice) mismatch! was: '$oldHasChoice' new: $has_choice for name=$name"
             }
         } else {
             set escaped [string map {: _} $name]
@@ -82,6 +89,7 @@ snit::type ::minhtmltk::formstate {
             array set $item $ourItemSlots
             set ${item}(name) $name
             set ${item}(type) $kind
+            set ${item}(has-choice) $has_choice
             if {[llength [$self info methods [list item $kind get]]]} {
                 set ${item}(gettable) yes
                 interp alias {} $item \
@@ -102,7 +110,7 @@ snit::type ::minhtmltk::formstate {
     
     method {item type} item { set ${item}(type) }
     method {item name} item { set ${item}(name) }
-    method {item is editable} item { set ${item}(editable) }
+    method {item has-choice} item { set ${item}(has-choice) }
     method {item valuelist} item { set ${item}(valueList) }
     method {item nodelist} item { set ${item}(nodeList) }
     # method {item optlist} item { set ${item}(optList) }
@@ -113,24 +121,41 @@ snit::type ::minhtmltk::formstate {
     #
     method {item register node} {kind node opts} {
         set name [dict-cut opts name]
-        set item [$self item of-name $name $kind]
+        set has_value [dict exists $opts value]
+        set value [dict-cut opts value ""]
+        set item [$self item of-name $name $kind \
+                      [dict-cut opts has-choice no]]
         set vn ${item}(type)
-        if {[dict exists $opts value]} {
-            set value [dict get $opts value]
+        if {[$self item has-choice $item]} {
             dict set ${item}(value2IxDict) $value \
                 [llength [set ${item}(valueList)]]
             lappend ${item}(valueList) $value
             lappend ${item}(labelList) [dict-cut opts label ""]
-        } else {
-            set ${item}(editable) [dict-cut opts editable no]
+        } elseif {$has_value} {
+            set [$self item var $item] $value
         }
         lappend ${item}(nodeList) $node
-        lappend ${item}(optList) $opts
+        lappend ${item}(optList) [dict-cut opts option ""]
+        if {[dict size $opts]} {
+            error "Unknown option for item(name=$name): opts=$opts"
+        }
         set item
     }
     
+    #
+    # Note: [item $kind $method] can't have multi word method name
+    # because of calling convention of interp alias.
+    # That is why belows are named node-at, node-widget-at
+    # and not "node at", "node widget at".
+    #
     foreach kind [list single multi] {
         method [list item $kind nodelist] item {set ${item}(nodeList)}
+        method [list item $kind node-at] {item nth} {
+            lindex [set ${item}(nodeList)] $nth
+        }
+        method [list item $kind node-widget-at] {item nth} {
+            [lindex [set ${item}(nodeList)] $nth] replace
+        }
     }
 
     method {item single unset} {item} {
@@ -151,7 +176,7 @@ snit::type ::minhtmltk::formstate {
 
     method {item single set} {item value} {
         set vn [$self item var $item]
-        if {![$self item is editable $item]
+        if {[$self item has-choice $item]
             && $value ni [$self item valuelist $item]} {
             $self log error unknown value "($value)" for $options(-name).[$self item name $item]
         }
@@ -173,9 +198,9 @@ snit::type ::minhtmltk::formstate {
             set result
         }
     }
-    method {item multi set} {item args} {
+    method {item multi set} {item values} {
         set knownDict [set ${item}(value2IxDict)]
-        foreach value $args {
+        foreach value $values {
             if {[dict exists $knownDict $value]} {
                 set [$self item var $item $value] 1
                 dict unset knownDict $value
@@ -184,6 +209,6 @@ snit::type ::minhtmltk::formstate {
         foreach value [dict keys $knownDict] {
             set [$self item var $item $value] 0     
         }
-        set args
+        set values
     }
 }

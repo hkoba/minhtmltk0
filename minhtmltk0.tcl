@@ -201,7 +201,7 @@ snit::widget minhtmltk {
         if {[regexp ^/ [$node tag]]} {
             set stateInForm ""
         } else {
-            $self form of-node $node
+            $self form add-for-node $node
             set stateInForm 1
         }
     }
@@ -232,7 +232,7 @@ snit::widget minhtmltk {
         }
     }
 
-    method {form of-node} {node} {
+    method {form add-for-node} {node} {
         set name [$node attr -default "" name]
         set vn stateFormNameDict($name)
         if {$name ne "" && [info exists $vn]} {
@@ -374,7 +374,8 @@ snit::widget minhtmltk {
 
     method {add input checkbox} {path node form args} {
         set item [$form item register node multi $node \
-                      [node-atts-assign $node name {value on}]]
+                      [list has-choice yes \
+                           {*}[node-atts-assign $node name {value on}]]]
         set var [$form item var $item $value]
         if {[$node attr -default "no" checked] ne "no"} {
             set $var 1
@@ -386,7 +387,8 @@ snit::widget minhtmltk {
 
     method {add input radio} {path node form args} {
         set item [$form item register node single $node \
-                      [node-atts-assign $node name {value on}]]
+                      [list has-choice yes \
+                           {*}[node-atts-assign $node name {value on}]]]
         set var [$form item var $item]
         if {[$node attr -default "no" checked] ne "no"} {
             set $var $value
