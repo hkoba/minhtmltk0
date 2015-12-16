@@ -22,6 +22,9 @@ snit::widget minhtmltk {
     option -encoding ""
 
     typeconstructor {
+	if {[ttk::style theme use] eq "default"} {
+	    ttk::style theme use clam
+	}
 	foreach t {TCheckbutton TRadiobutton TButton} {
 	    ::ttk::style configure $t \
 		-background white -activebackground white
@@ -345,7 +348,7 @@ snit::widget minhtmltk {
 
     method {add input checkbox} {path node form args} {
 	set item [$form item register node multi $node \
-		      [node-atts-assign $node name value]]
+		      [node-atts-assign $node name {value on}]]
 	set var [$form item var $item $value]
 	if {[$node attr -default "no" checked] ne "no"} {
 	    set $var 1
@@ -357,7 +360,7 @@ snit::widget minhtmltk {
 
     method {add input radio} {path node form args} {
 	set item [$form item register node single $node \
-		      [node-atts-assign $node name value]]
+		      [node-atts-assign $node name {value on}]]
 	set var [$form item var $item]
 	if {[$node attr -default "no" checked] ne "no"} {
 	    set $var $value
