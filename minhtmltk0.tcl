@@ -7,35 +7,10 @@ package require Tkhtml 3
 package require snit
 package require widget::scrolledwindow
 
+source [file dirname [info script]]/utils.tcl
+
 namespace eval ::minhtmltk {
-    proc dict-cut {dictVar key args} {
-	upvar 1 $dictVar dict
-	if {[dict exists $dict $key]} {
-	    set res [dict get $dict $key]
-	    dict unset dict $key
-	    set res
-	} elseif {[llength $args]} {
-	    lindex $args 0
-	} else {
-	    error "No such key: $key"
-	}
-    }
-
-    proc parsePosixOpts {varName {dict {}}} {
-	upvar 1 $varName opts
-
-	for {} {[llength $opts]
-		&& [regexp {^--?([\w\-]+)(?:(=)(.*))?} [lindex $opts 0] \
-			-> name eq value]} {set opts [lrange $opts 1 end]} {
-	    if {$eq eq ""} {
-		set value 1
-	    }
-	    dict set dict -$name $value
-	}
-	set dict
-    }
-    
-    namespace export *
+    namespace import ::minhtmltk::utils::*
 }
 
 source [file dirname [info script]]/formstate.tcl
