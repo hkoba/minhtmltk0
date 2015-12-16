@@ -21,16 +21,16 @@ test $P-create "" -body {
 
 #----------------------------------------
 
-set C 1; set i 0
+set C 1; set I 0
 
-test $P-$C-[incr i]-parse "" -body {
+test $P-$C-[incr I]-parse "" -body {
     .ht parse -final {
 	<h2>Hello</h2>
     }
     string trim [.ht state source]
 } -result <h2>Hello</h2>
 
-test $P-$C-[incr i]-selector "" -body {
+test $P-$C-[incr I]-selector "" -body {
     # update
     [lindex [[.ht search h2] children]] text -pre
 } -result Hello
@@ -38,7 +38,7 @@ test $P-$C-[incr i]-selector "" -body {
 #----------------------------------------
 incr C
 
-test $P-$C-[incr i]-parse "Input without <form> is mimiced as form 0" -body {
+test $P-$C-[incr I]-parse "Input without <form> is mimiced as form 0" -body {
     .ht Reset
     .ht parse -final {
 	<input name="q1">
@@ -55,7 +55,7 @@ test $P-$C-[incr i]-parse "Input without <form> is mimiced as form 0" -body {
 #----------------------------------------
 incr C
 
-test $P-$C-[incr i]-parse "Multiple <form> without name." -body {
+test $P-$C-[incr I]-parse "Multiple <form> without name." -body {
     .ht Reset
     .ht parse -final {
 	<form>
@@ -75,6 +75,95 @@ test $P-$C-[incr i]-parse "Multiple <form> without name." -body {
     set res
 } -result [list [list q1 x q2 y] [list q1 A q2 B]]
 
+
+#----------------------------------------
+incr C
+
+test $P-$C-[incr I]-parse "Radio with value" -body {
+    .ht Reset
+    .ht parse -final {
+	<form>
+	<input type="radio" name="q1" value="1">
+	<input type="radio" name="q1" value="2">
+	<input type="radio" name="q1" value="3">
+	</form>
+    }
+    
+    set form [.ht form get 0]
+
+    set res []
+    lappend res init [$form get]
+    set item [$form item of-name q1]
+    lappend res [$item get missing]
+
+    $item set 3
+    lappend res to:be:3 [$form get]
+    lappend res [$item get]
+
+    set res
+} -result [list \
+	       init [] \
+	       0 \
+	       to:be:3 [list q1 3] \
+	       3 \
+	   ]
+
+test $P-$C-[incr I]-parse "Radio with checked" -body {
+    .ht Reset
+    .ht parse -final {
+	<form>
+	<input type="radio" name="q1" value="1">
+	<input type="radio" name="q1" value="2" checked>
+	<input type="radio" name="q1" value="3">
+	</form>
+    }
+    
+    set form [.ht form get 0]
+
+    set res []
+    lappend res init [$form get]
+    set item [$form item of-name q1]
+    lappend res [$item get]
+
+    set res
+} -result [list \
+	       init [list q1 2] \
+	       2 \
+	   ]
+
+
+test $P-$C-[incr I]-parse "Radio without value" -body {
+    .ht Reset
+    .ht parse -final {
+	<form>
+	<input type="radio" name="q1">
+	<input type="radio" name="q2">
+	<input type="radio" name="q3">
+	</form>
+    }
+    
+    set form [.ht form get 0]
+
+    set res []
+    lappend res init [$form get]
+    foreach qname [$form names] {
+	set item [$form item of-name $qname]
+
+	# Directly invoke and set on.
+	set node [lindex [$item nodelist] 0]
+	set radio [$node replace]; # get replacement.
+	$radio invoke
+    }
+    lappend res set-all [$form get]
+
+    set res
+} -result [list \
+	       init [] \
+	       set-all [list q1 on q2 on q3 on]\
+	   ]
+
+
+#----------------------------------------
 
 #----------------------------------------
 
