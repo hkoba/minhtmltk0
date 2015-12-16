@@ -12,10 +12,10 @@ namespace eval ::minhtmltk::formstate {
 }
 
 snit::type ::minhtmltk::formstate {
-    option -name
-    option -action
+    option -name ""
+    option -action ""
 
-    option -node
+    option -node ""
     option -logger ""
 
     variable myNameList {}

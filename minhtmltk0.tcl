@@ -79,8 +79,16 @@ snit::widget minhtmltk {
 
     method Reset {} {
         $myHtml reset
+	foreach form [list {*}$stateFormList $stateOuterForm] {
+	    if {$form eq ""} continue
+	    $form destroy
+	}
         foreach stVar [info vars ${selfns}::state*] {
-            set $stVar ""
+	    if {[array exists $stVar]} {
+		array unset $stVar
+	    } else {
+		set $stVar ""
+	    }
         }
     }
     
@@ -111,7 +119,7 @@ snit::widget minhtmltk {
 
     method install-html-handlers {} {
         
-        $myHtml handler node input [list $self add by-input-type]
+        $myHtml handler node input [list $self logged add by-input-type]
 
         foreach kind {parse script node} {
             foreach tag $options(-handle-$kind) {
@@ -119,7 +127,7 @@ snit::widget minhtmltk {
                 if {![llength [$self info methods $meth]]} {
                     error "Can't find tag handler for $tag"
                 }
-                $myHtml handler $kind $tag [list $self {*}$meth]
+                $myHtml handler $kind $tag [list $self logged {*}$meth]
             }
         }
     }
@@ -160,8 +168,20 @@ snit::widget minhtmltk {
     #========================================
     # logging... hmm...
     variable stateParseErrors ""
+    option -debug no
+    method logged args {
+	set rc [catch {
+	    $self {*}$args
+	} error]
+	if {$rc} {
+	    $self error add [list error $error $::errorInfo]
+	}
+    }
     method {error add} error {
         lappend stateParseErrors $error
+	if {$options(-debug)} {
+	    puts stderr $error
+	}
     }
     method {error raise} error {
         lappend stateParseErrors $error
@@ -171,35 +191,41 @@ snit::widget minhtmltk {
     #========================================
     # form (formstate)
     #========================================
-    variable myFormList {}
-    variable myFormNameDict -array {}
-    # XXX: myFormPathDict も有るべきか？ selector から逆引きしやすいように…
-    variable myOuterForm ""
+    variable stateInForm ""
+    variable stateFormList {}
+    variable stateFormNameDict -array {}
+    # XXX: stateFormPathDict も有るべきか？ selector から逆引きしやすいように…
+    variable stateOuterForm ""
 
     method {add parse form} {node args} {
-        $self form of-node $node
+	if {[regexp ^/ [$node tag]]} {
+	    set stateInForm ""
+	} else {
+	    $self form of-node $node
+	    set stateInForm 1
+	}
     }
 
     method {form list} {} {
-        set myFormList
+        set stateFormList
     }
 
     method {form names} {args} {
-        array names myFormNameDict {*}$args
+        array names stateFormNameDict {*}$args
     }
 
     method {form get} {ix {fallback yes}} {
         if {[string is integer $ix]} {
-            if {$ix == 0 && ![llength $myFormList]} {
+            if {$ix == 0 && ![llength $stateFormList]} {
                 if {!$fallback} {
                     error "No form tag!"
                 }
-                set myOuterForm
+                set stateOuterForm
             } else {
-                lindex $myFormList $ix
+                lindex $stateFormList $ix
             }
         } elseif {[regexp ^@(.*) $ix -> name]} {
-            set myFormNameDict($name)
+            set stateFormNameDict($name)
         } else {
             # XXX: ix に css selector を渡せても良いのでは。
             error "Invalid form index: $ix"
@@ -208,30 +234,30 @@ snit::widget minhtmltk {
 
     method {form of-node} {node} {
         set name [$node attr -default "" name]
-        set vn myFormNameDict($name)
-        if {[info exists $vn]} {
-            error [list form name=$name appeared twice!]
+        set vn stateFormNameDict($name)
+        if {$name ne "" && [info exists $vn]} {
+            $self error add [list form name=$name appeared twice!]
         }
 
         set form [$self form new $name -action [$node attr -default "" action] \
                      -node $node]
-        lappend myFormList $form
+        lappend stateFormList $form
         set $vn $form
     }
     
     method {with form} command {
         upvar 1 form form
-        set form [$self form current]
-        uplevel 1 $command
+	set form [$self form current]
+	uplevel 1 $command
     }
     
     method {form current} {} {
-        if {[llength $myFormList]} {
-            lindex $myFormList end
-        } elseif {$myOuterForm ne ""} {
-            set myOuterForm
+	if {$stateInForm ne ""} {
+            lindex $stateFormList end
+	} elseif {$stateOuterForm ne ""} {
+            set stateOuterForm
         } else {
-            set myOuterForm [$self form new ""]
+            set stateOuterForm [$self form new ""]
         }
     }
 

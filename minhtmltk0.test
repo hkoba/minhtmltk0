@@ -1,0 +1,81 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+    
+package require tcltest
+namespace import tcltest::test
+
+package require struct::list
+
+set P minhtmltk
+set type ::$P
+
+test $P-init load -body {
+    source [file rootname [info script]].tcl
+} -result ""
+
+test $P-create "" -body {
+    $type .ht -debug yes
+} -result .ht
+
+#----------------------------------------
+
+set C 1; set i 0
+
+test $P-$C-[incr i]-parse "" -body {
+    .ht parse -final {
+	<h2>Hello</h2>
+    }
+    string trim [.ht state source]
+} -result <h2>Hello</h2>
+
+test $P-$C-[incr i]-selector "" -body {
+    # update
+    [lindex [[.ht search h2] children]] text -pre
+} -result Hello
+
+#----------------------------------------
+incr C
+
+test $P-$C-[incr i]-parse "Input without <form> is mimiced as form 0" -body {
+    .ht Reset
+    .ht parse -final {
+	<input name="q1">
+	<input name="q2">
+    }
+    
+    set form [.ht form get 0]
+    set res {}
+    lappend res [$form names]
+    lappend res [$form get]
+    set res
+} -result [list [list q1 q2] [list q1 "" q2 ""]]
+
+#----------------------------------------
+incr C
+
+test $P-$C-[incr i]-parse "Multiple <form> without name." -body {
+    .ht Reset
+    .ht parse -final {
+	<form>
+	<input name="q1" value="x">
+	<input name="q2" value="y">
+	</form>
+	<form>
+	<input name="q1" value="A">
+	<input name="q2" value="B">
+	</form>
+    }
+    
+    set res {}
+    foreach form [.ht form list] {
+	lappend res [$form get]
+    }
+    set res
+} -result [list [list q1 x q2 y] [list q1 A q2 B]]
+
+
+#----------------------------------------
+
+catch {destroy .}
