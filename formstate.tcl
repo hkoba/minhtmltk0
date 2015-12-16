@@ -104,7 +104,7 @@ snit::type ::minhtmltk::formstate {
     method {item name} item { set ${item}(name) }
     method {item is editable} item { set ${item}(editable) }
     method {item valuelist} item { set ${item}(valueList) }
-    # method {item nodelist} item { set ${item}(nodeList) }
+    method {item nodelist} item { set ${item}(nodeList) }
     # method {item optlist} item { set ${item}(optList) }
 
     #
@@ -129,6 +129,10 @@ snit::type ::minhtmltk::formstate {
         set item
     }
     
+    foreach kind [list single multi] {
+        method [list item $kind nodelist] item {set ${item}(nodeList)}
+    }
+
     method {item single unset} {item} {
         unset [$self item var $item]
     }
@@ -149,7 +153,7 @@ snit::type ::minhtmltk::formstate {
         set vn [$self item var $item]
         if {![$self item is editable $item]
             && $value ni [$self item valuelist $item]} {
-            $self log error unknown value for $options(-name).[$self item name $item]
+            $self log error unknown value "($value)" for $options(-name).[$self item name $item]
         }
         set $vn $value
     }
