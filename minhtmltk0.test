@@ -25,7 +25,7 @@ set C 1; set I 0
 
 test $P-$C-[incr I]-parse "" -body {
     .ht parse -final {
-	<h2>Hello</h2>
+        <h2>Hello</h2>
     }
     string trim [.ht state source]
 } -result <h2>Hello</h2>
@@ -41,8 +41,8 @@ incr C
 test $P-$C-[incr I]-parse "Input without <form> is mimiced as form 0" -body {
     .ht Reset
     .ht parse -final {
-	<input name="q1">
-	<input name="q2">
+        <input name="q1">
+        <input name="q2">
     }
     
     set form [.ht form get 0]
@@ -58,19 +58,19 @@ incr C
 test $P-$C-[incr I]-parse "Multiple <form> without name." -body {
     .ht Reset
     .ht parse -final {
-	<form>
-	<input name="q1" value="x">
-	<input name="q2" value="y">
-	</form>
-	<form>
-	<input name="q1" value="A">
-	<input name="q2" value="B">
-	</form>
+        <form>
+        <input name="q1" value="x">
+        <input name="q2" value="y">
+        </form>
+        <form>
+        <input name="q1" value="A">
+        <input name="q2" value="B">
+        </form>
     }
     
     set res {}
     foreach form [.ht form list] {
-	lappend res [$form get]
+        lappend res [$form get]
     }
     set res
 } -result [list [list q1 x q2 y] [list q1 A q2 B]]
@@ -82,11 +82,11 @@ incr C
 test $P-$C-[incr I]-parse "Radio with value" -body {
     .ht Reset
     .ht parse -final {
-	<form>
-	<input type="radio" name="q1" value="1">
-	<input type="radio" name="q1" value="2">
-	<input type="radio" name="q1" value="3">
-	</form>
+        <form>
+        <input type="radio" name="q1" value="1">
+        <input type="radio" name="q1" value="2">
+        <input type="radio" name="q1" value="3">
+        </form>
     }
     
     set form [.ht form get 0]
@@ -102,20 +102,20 @@ test $P-$C-[incr I]-parse "Radio with value" -body {
 
     set res
 } -result [list \
-	       init [] \
-	       0 \
-	       to:be:3 [list q1 3] \
-	       3 \
-	   ]
+               init [] \
+               0 \
+               to:be:3 [list q1 3] \
+               3 \
+           ]
 
 test $P-$C-[incr I]-parse "Radio with checked" -body {
     .ht Reset
     .ht parse -final {
-	<form>
-	<input type="radio" name="q1" value="1">
-	<input type="radio" name="q1" value="2" checked>
-	<input type="radio" name="q1" value="3">
-	</form>
+        <form>
+        <input type="radio" name="q1" value="1">
+        <input type="radio" name="q1" value="2" checked>
+        <input type="radio" name="q1" value="3">
+        </form>
     }
     
     set form [.ht form get 0]
@@ -127,19 +127,19 @@ test $P-$C-[incr I]-parse "Radio with checked" -body {
 
     set res
 } -result [list \
-	       init [list q1 2] \
-	       2 \
-	   ]
+               init [list q1 2] \
+               2 \
+           ]
 
 
 test $P-$C-[incr I]-parse "Radio without value" -body {
     .ht Reset
     .ht parse -final {
-	<form>
-	<input type="radio" name="q1">
-	<input type="radio" name="q2">
-	<input type="radio" name="q3">
-	</form>
+        <form>
+        <input type="radio" name="q1">
+        <input type="radio" name="q2">
+        <input type="radio" name="q3">
+        </form>
     }
     
     set form [.ht form get 0]
@@ -147,20 +147,20 @@ test $P-$C-[incr I]-parse "Radio without value" -body {
     set res []
     lappend res init [$form get]
     foreach qname [$form names] {
-	set item [$form item of-name $qname]
+        set item [$form item of-name $qname]
 
-	# Directly invoke and set on.
-	set node [lindex [$item nodelist] 0]
-	set radio [$node replace]; # get replacement.
-	$radio invoke
+        # Directly invoke and set on.
+        set node [lindex [$item nodelist] 0]
+        set radio [$node replace]; # get replacement.
+        $radio invoke
     }
     lappend res set-all [$form get]
 
     set res
 } -result [list \
-	       init [] \
-	       set-all [list q1 on q2 on q3 on]\
-	   ]
+               init [] \
+               set-all [list q1 on q2 on q3 on]\
+           ]
 
 
 #----------------------------------------
@@ -168,3 +168,4 @@ test $P-$C-[incr I]-parse "Radio without value" -body {
 #----------------------------------------
 
 catch {destroy .}
+
