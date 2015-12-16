@@ -79,16 +79,16 @@ snit::widget minhtmltk {
 
     method Reset {} {
         $myHtml reset
-	foreach form [list {*}$stateFormList $stateOuterForm] {
-	    if {$form eq ""} continue
-	    $form destroy
-	}
+        foreach form [list {*}$stateFormList $stateOuterForm] {
+            if {$form eq ""} continue
+            $form destroy
+        }
         foreach stVar [info vars ${selfns}::state*] {
-	    if {[array exists $stVar]} {
-		array unset $stVar
-	    } else {
-		set $stVar ""
-	    }
+            if {[array exists $stVar]} {
+                array unset $stVar
+            } else {
+                set $stVar ""
+            }
         }
     }
     
@@ -170,18 +170,18 @@ snit::widget minhtmltk {
     variable stateParseErrors ""
     option -debug no
     method logged args {
-	set rc [catch {
-	    $self {*}$args
-	} error]
-	if {$rc} {
-	    $self error add [list error $error $::errorInfo]
-	}
+        set rc [catch {
+            $self {*}$args
+        } error]
+        if {$rc} {
+            $self error add [list error $error $::errorInfo]
+        }
     }
     method {error add} error {
         lappend stateParseErrors $error
-	if {$options(-debug)} {
-	    puts stderr $error
-	}
+        if {$options(-debug)} {
+            puts stderr $error
+        }
     }
     method {error raise} error {
         lappend stateParseErrors $error
@@ -198,12 +198,12 @@ snit::widget minhtmltk {
     variable stateOuterForm ""
 
     method {add parse form} {node args} {
-	if {[regexp ^/ [$node tag]]} {
-	    set stateInForm ""
-	} else {
-	    $self form of-node $node
-	    set stateInForm 1
-	}
+        if {[regexp ^/ [$node tag]]} {
+            set stateInForm ""
+        } else {
+            $self form of-node $node
+            set stateInForm 1
+        }
     }
 
     method {form list} {} {
@@ -247,14 +247,14 @@ snit::widget minhtmltk {
     
     method {with form} command {
         upvar 1 form form
-	set form [$self form current]
-	uplevel 1 $command
+        set form [$self form current]
+        uplevel 1 $command
     }
     
     method {form current} {} {
-	if {$stateInForm ne ""} {
+        if {$stateInForm ne ""} {
             lindex $stateFormList end
-	} elseif {$stateOuterForm ne ""} {
+        } elseif {$stateOuterForm ne ""} {
             set stateOuterForm
         } else {
             set stateOuterForm [$self form new ""]
