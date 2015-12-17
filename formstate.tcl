@@ -15,6 +15,9 @@ snit::type ::minhtmltk::formstate {
     option -name ""
     option -action ""
 
+    option -data ""; # Other "satellite" data from Dynamic HTML.
+    option -outer-data ""; # Other "satellite" data from User.
+
     option -node ""
     option -logger ""
 
