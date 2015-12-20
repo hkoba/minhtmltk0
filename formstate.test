@@ -27,7 +27,7 @@ set i 0
 test $P-create "" -body {
     set form [$type %AUTO%]
     list [$form cget -name] [$form cget -action] [$form cget -node] \
-        [$form names] [$form get]
+        [$form names] [$form get_all]
 } -result [list "" "" "" "" ""]
 
 
@@ -124,5 +124,5 @@ lappend t_pairs $name {1 2 3}
 #----------------------------------------
 
 test $P-item-checkbox-[incr i] "" -body {
-    $form get
+    $form get_all
 } -result $t_pairs

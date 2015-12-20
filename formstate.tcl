@@ -57,10 +57,29 @@ snit::type ::minhtmltk::formstate {
         set myNameList
     }
 
+    method get {name {outVar ""}} {
+        set item [$self item of-name $name]
+        if {$outVar ne ""} {
+            upvar 1 $outVar out
+            if {![$self item is gettable $item]} {
+                return no
+            }
+            $item get out
+        } else {
+            if {![$self item is gettable $item]} {
+                error "Not gettable: $name"
+            }
+            $item get
+        }
+    }
+
     # Note: this can't be used for QUERY_STRING
-    method get {} {
+    method get_all {{names ""}} {
+        if {$names eq ""} {
+            set names [$self names]
+        }
         set result {}
-        foreach name [$self names] {
+        foreach name $names {
             set item [$self item of-name $name]
             if {![$self item is gettable $item]} continue
             if {![$item get value]} continue

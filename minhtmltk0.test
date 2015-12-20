@@ -48,7 +48,7 @@ test $P-$C-[incr I]-parse "Input without <form> is mimiced as form 0" -body {
     set form [.ht form get 0]
     set res {}
     lappend res [$form names]
-    lappend res [$form get]
+    lappend res [$form get_all]
     set res
 } -result [list [list q1 q2] [list q1 "" q2 ""]]
 
@@ -70,7 +70,7 @@ test $P-$C-[incr I]-parse "Multiple <form> without name." -body {
     
     set res {}
     foreach form [.ht form list] {
-        lappend res [$form get]
+        lappend res [$form get_all]
     }
     set res
 } -result [list [list q1 x q2 y] [list q1 A q2 B]]
@@ -92,12 +92,12 @@ test $P-$C-[incr I]-parse "Radio with value" -body {
     set form [.ht form get 0]
 
     set res []
-    lappend res init [$form get]
+    lappend res init [$form get_all]
     set item [$form item of-name q1]
     lappend res [$item get missing]
 
     $item set 3
-    lappend res to:be:3 [$form get]
+    lappend res to:be:3 [$form get_all]
     lappend res [$item get]
 
     set res
@@ -121,7 +121,7 @@ test $P-$C-[incr I]-parse "Radio with checked" -body {
     set form [.ht form get 0]
 
     set res []
-    lappend res init [$form get]
+    lappend res init [$form get_all]
     set item [$form item of-name q1]
     lappend res [$item get]
 
@@ -145,7 +145,7 @@ test $P-$C-[incr I]-parse "Radio without value" -body {
     set form [.ht form get 0]
 
     set res []
-    lappend res init [$form get]
+    lappend res init [$form get_all]
     foreach qname [$form names] {
         set item [$form item of-name $qname]
 
@@ -157,7 +157,7 @@ test $P-$C-[incr I]-parse "Radio without value" -body {
         [$item node-widget-at 0] invoke
         # [$item node widget at 0] invoke
     }
-    lappend res set-all [$form get]
+    lappend res set-all [$form get_all]
 
     set res
 } -result [list \
@@ -183,20 +183,20 @@ test $P-$C-[incr I]-parse "Checkbox with value" -body {
     set form [.ht form get 0]
 
     set res []
-    lappend res init [$form get]
+    lappend res init [$form get_all]
     set item [$form item of-name q1]
     lappend res [list [$item get missing] [$item get]]
 
     # $item set [list 1 3]
     [$item node-widget-at 0] invoke
     [$item node-widget-at 2] invoke
-    lappend res to:be:1,3 [$form get]
+    lappend res to:be:1,3 [$form get_all]
     lappend res [list [$item get missing] [$item get]]
 
     # clear 1, 3
     [$item node-widget-at 0] invoke
     [$item node-widget-at 2] invoke
-    lappend res "cleared-again" [$form get]
+    lappend res "cleared-again" [$form get_all]
     lappend res [list [$item get missing] [$item get]]
 
 
@@ -213,7 +213,7 @@ test $P-$C-[incr I]-parse "Checkbox with value" -body {
 test $P-$C-[incr I]-parse "Checkbox item set {1 3}" -body {
     set res ""
     $item set [list 1 3]
-    lappend res to:be:1,3 [$form get]
+    lappend res to:be:1,3 [$form get_all]
     lappend res [list [$item get missing] [$item get]]
 } -result [list \
                "to:be:1,3" [list q1 [list 1 3]] \
