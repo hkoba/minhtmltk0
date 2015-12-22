@@ -57,6 +57,14 @@ snit::type ::minhtmltk::formstate {
         set myNameList
     }
 
+    method set {name value} {
+        set item [$self item of-name $name]
+	if {![$self item is gettable $item]} {
+	    error "Can't set to item $name"
+	}
+	$item set $value
+    }
+
     method get {name {outVar ""}} {
         set item [$self item of-name $name]
         if {$outVar ne ""} {

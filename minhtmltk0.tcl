@@ -6,6 +6,7 @@
 package require Tkhtml 3
 package require snit
 package require widget::scrolledwindow
+#package require BWidget
 
 source [file dirname [info script]]/utils.tcl
 
@@ -177,6 +178,9 @@ snit::widget minhtmltk {
             $self error add [list error $error $::errorInfo]
         }
     }
+    method {error get} {} {
+	set stateParseErrors
+    }
     method {error add} error {
         lappend stateParseErrors $error
         if {$options(-debug)} {
@@ -300,9 +304,12 @@ snit::widget minhtmltk {
         $self with form {
             $self with path-of $node {
                 widget::scrolledwindow $path
-                set t [text $path.text -width [$node attr -default 60 cols]\
-                           -height [$node attr -default 10 rows]]
-                $path setwidget $t
+		set t $path.text
+		#set t $path
+                text $t -width [$node attr -default 60 cols]\
+		    -height [$node attr -default 10 rows]
+		$path setwidget $t
+		$path configure -width 600 -height 100
 
                 set item [$form item register node single $node \
                               [node-atts-assign $node name value]]
@@ -354,6 +361,11 @@ snit::widget minhtmltk {
         ::ttk::entry $path \
             -textvariable $var \
             -width [$node attr -default 20 size] {*}$args
+	if {[set script [$node attr -default "" onchange]] ne ""} {
+	    bind $path <Return> \
+		[list apply [list {win node path form} $script]\
+		     $win $node $path $form]
+	}
     }
 
     method {add input password} {path node form args} {
