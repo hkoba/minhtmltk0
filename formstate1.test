@@ -137,7 +137,9 @@ test $P-name-[incr i] "" -body {
     set res
 } -result [list $t_names [] [list $name foo $name bar $name baz]]
 
-test $P-set-serialize-[incr i] "" -body {
+#========================================
+
+test $P-namedvars-n-serialize-[incr i] "" -body {
     set [lindex [$form namedvars ss1] 0] 2
     set [lindex [$form namedvars mm1] 0] 1
     set [lindex [$form namedvars tt1] 0] FOO
@@ -145,109 +147,35 @@ test $P-set-serialize-[incr i] "" -body {
 } -result [list ss1 2 mm1 [list 1] \
 	       $name FOO $name bar $name baz]
 
-test $P-set-serialize-[incr i] "" -body {
+test $P-namedvars-n-serialize-[incr i] "" -body {
     unset [lindex [$form namedvars ss1] 0]
     unset [lindex [$form namedvars mm1] 0]
     unset [lindex [$form namedvars tt1] 0]; # XXX: Unrealistic.
     $form node serialize $t_nodes
 } -result [list $name bar $name baz]
 
+#========================================
 
-# #========================================
-
-# set value dval[incr d]
-# test $P-item-text-[incr i] "" -body {
+test $P-set-n-serialize-[incr i] "" -body {
     
-#     set name dummy$d
-#     set node node-$name
-#     $form node add single  \
-# 	$node [list name $name value ""]
+    $form set ss1 3
+    $form set mm1 [list 1 2]
+    $form set tt1 BAR
+
+    $form node serialize $t_nodes
+} -result [list ss1 3 \
+	       mm1 1 \
+	       mm1 2 \
+	       $name BAR $name bar $name baz]
+
+test $P-set-n-get-[incr i] "" -body {
     
-#     set res ""
-#     lappend res [$form get $name]
-#     lappend res [$form get $name outval]
-#     lappend res [info exists outval]
-# } -result [list "" 1 1]
+    list \
+	[list ss1 [$form get ss1]] \
+	[list mm1 [$form get mm1]] \
+	[list tt1 [$form get tt1]]
 
-# lappend t_names $name
-# #----------------------------------------
-
-
-# test $P-item-text-[incr i] "" -body {
-#     $item set foo
-#     $form get $name
-# } -result foo
-
-
-# test $P-item-text-[incr i] "" -body {
-#     $item set bar
-#     set rc [$form get $name outval]
-#     list $rc $outval
-# } -result [list 1 bar]
-
-# lappend t_pairs $name bar
-# #----------------------------------------
-
-# incr d
-# test $P-item-radio-[incr i] "" -body {
-    
-#     set name dummy$d
-    
-#     set result {}
-#     for {set i 1} {$i <= 3} {incr i} {
-#         set item [$form node add single  \
-#                       node-$name [list name $name value $i has-choice yes]]
-#     }
-    
-#     $form get $name outval
-# } -result 0
-
-# lappend t_names $name
-# #----------------------------------------
-
-# test $P-item-radio-[incr i] "" -body {
-    
-#     set result {}
-#     for {set i 1} {$i <= 3} {incr i} {
-#         $item set $i
-#         lappend result [list [$form get $name v] $v]
-#     }
-#     set result
-# } -result {{1 1} {1 2} {1 3}}
-
-# lappend t_pairs $name 3
-# #----------------------------------------
-
-# incr d
-# test $P-item-checkbox-[incr i] "" -body {
-    
-#     set name dummy$d
-    
-#     set result {}
-#     for {set i 1} {$i <= 3} {incr i} {
-#         set item [$form node add multi  \
-#                       node-$name [list name $name value $i has-choice yes]]
-#     }
-    
-#     $form get $name outval
-# } -result 0
-
-# lappend t_names $name
-# #----------------------------------------
-
-# test $P-item-checkbox-[incr i] "" -body {
-    
-#     set result {}
-#     for {set i 1} {$i <= 3} {incr i} {
-#         $item set [iota1 $i]
-#         lappend result [$form get $name]
-#     }
-#     set result
-# } -result {1 {1 2} {1 2 3}}
-
-# lappend t_pairs $name {1 2 3}
-# #----------------------------------------
-
-# test $P-item-checkbox-[incr i] "" -body {
-#     $form get_all
-# } -result $t_pairs
+} -result [list [list ss1 3] \
+	       [list mm1 [list 1 2]] \
+	       [list $name BAR] \
+	       ]

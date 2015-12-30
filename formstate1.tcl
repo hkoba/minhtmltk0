@@ -24,6 +24,7 @@ snit::type ::minhtmltk::formstate {
     # $html search {input | textarea | select} -root $options(-node)
 
     variable myNodeDict [dict create]
+    variable myNodeList {}
 
     variable myNameList {}
     variable myNameDict [dict create]
@@ -55,10 +56,51 @@ snit::type ::minhtmltk::formstate {
 	attr
     } {lappend ls $i $i}; set ls]
 
+    method get_all {{names ""}} {
+        if {$names eq ""} {
+            set names [$self names]
+        }
+	set result {}
+	foreach name $names {
+	    set nodelist [dict get $myNameDict $name nodeList]
+	    set is_array [dict get $myNodeDict [lindex $nodelist 0] is_array]
+	    # set values {}
+	    foreach node $nodelist {
+		$self current node with name value $node {
+		    lappend values $value
+		}
+	    }
+	    if {[info exists values]} {
+		if {$is_array} {
+		    lappend result $name $values
+		} else {
+		    lappend result $name [lindex $values 0]
+		}
+		unset values
+	    }
+	}
+	set result
+    }
+
+    method set {name value} {
+	if {![dict exists $myNameDict $name]} {
+	    error "Unknown name! $name"
+	}
+	set fst_node [lindex [dict get $myNameDict $name nodeList] 0]
+	set is_array [dict get $myNodeDict $fst_node is_array]
+	if {$is_array} {
+	    $self array set $name $value
+	} else {
+	    set [$self node var $fst_node] $value
+	}
+    }
     
     #
+    # [$form node serialize ?$NODE_LIST?]
+    #
     # Returns `name` `value` (flattened) list in $NODE_LIST order.
-    # Same `name` can occur multiple times as in usual HTTP query string
+    # Same `name` can occur multiple times as in usual HTTP query string.
+    # Caller must supply correct $NODE_LIST (of `Successful controls`).
     #
     method {node serialize} {{node_list ""}} {
 	if {$node_list eq ""} {
@@ -66,27 +108,39 @@ snit::type ::minhtmltk::formstate {
 	}
 	set result ""
 	foreach node $node_list {
-	    set name [dict get $myNodeDict $node name]
-	    set vn [dict get $myNodeDict $node var]
-	    if {![info exists $vn]} continue
-	    if {[dict get $myNodeDict $node is_array]} {
-		# multi
-		lappend result $name [dict get $myNodeDict $node value]
-	    } elseif {[dict get $myNameDict $name choiceList] ne ""} {
-		# single
-		if {[set $vn] eq [dict get $myNodeDict $node value]} {
-		    lappend result $name [set $vn]
-		}
-	    } else {
-		# otherwise
-		lappend result $name [set $vn]
+	    $self current node with name value $node {
+		lappend result $name $value
 	    }
 	}
 	set result
     }
     
-    method get_all {} {
-	$self serialize
+    method {current node with name value} {node command} {
+	if {![dict exists $myNodeDict $node]} {
+	    error "Unknown node $node"
+	}
+	set vn [dict get $myNodeDict $node var]
+	if {![info exists $vn]} return
+	upvar 1 name name
+	set name [dict get $myNodeDict $node name]
+	upvar 1 value value
+	if {[dict get $myNodeDict $node is_array]} {
+	    # multi
+	    if {[set $vn]} {
+		set value [dict get $myNodeDict $node value]
+		uplevel 1 $command
+	    }
+	} elseif {[dict get $myNameDict $name choiceList] ne ""} {
+	    # single
+	    if {[set $vn] eq [dict get $myNodeDict $node value]} {
+		set value [set $vn]
+		uplevel 1 $command
+	    }
+	} else {
+	    # otherwise
+	    set value [set $vn]
+	    uplevel 1 $command
+	}
     }
 
     method get {name {outVar ""}} {
@@ -96,14 +150,12 @@ snit::type ::minhtmltk::formstate {
 	set dict [dict get $myNameDict $name]
 	set fst_node [lindex [dict get $dict nodeList] 0]
 	if {[$self node dict get $fst_node is_array]} {
-	    set arrayName [$self node dict get $fst_node array_name]
-	    set result {}
-	    foreach value [$self choicelist $name] {
-		if {[default arrayName($value) 0]} {
-		    lappend result $value
-		}
+	    set result [$self array get $name]
+	    if {$outVar ne ""} {
+		return [llength $result]
+	    } else {
+		return $result
 	    }
-	    set result
 	} elseif {[info exists [set vn [$self node var $fst_node]]]} {
 	    set result [set $vn]
 	    if {$outVar ne ""} {
@@ -120,6 +172,26 @@ snit::type ::minhtmltk::formstate {
 	}
     }
 
+    method {array get} name {
+	set fst_node [lindex [dict get $myNameDict $name nodeList] 0]
+	set arrayName [$self node dict get $fst_node array_name]
+	set result {}
+	foreach value [$self choicelist $name] {
+	    if {[default [set arrayName]($value) 0]} {
+		lappend result $value
+	    }
+	}
+	set result
+    }
+
+    method {array set} {name values} {
+	set fst_node [lindex [dict get $myNameDict $name nodeList] 0]
+	set arrayName [$self node dict get $fst_node array_name]
+	foreach choice [$self choicelist $name] {
+	    set [set arrayName]($choice) [expr {$choice in $values}]
+	}
+    }
+
     method names args {
 	dict keys $myNameDict {*}$args
     }
@@ -128,14 +200,21 @@ snit::type ::minhtmltk::formstate {
 	dict get $myNameDict $name choiceList
     }
 
-    method namedvars name {
-	set varlist {}
+    method namedvars {name {ix ""}} {
 	dict with myNameDict $name {
-	    foreach node $nodeList {
-		lappend varlist [$self node var $node]
+	    if {$ix ne ""} {
+		return [$self node var [lindex $nodeList $ix]]
+	    } else {
+		return [struct::list map $nodeList [list $self node var]]
 	    }
 	}
-	set varlist
+    }
+
+    method {node at} i {
+	lindex $myNodeList $i
+    }
+    method {node widget at} i {
+	[lindex $myNodeList $i] replace
     }
 
     method {node add} {kind node attr args} {
@@ -154,6 +233,7 @@ snit::type ::minhtmltk::formstate {
 		multi {
 		    set is_array 1
 		    set array_name ${selfns}::_M[$self add-name-of $node $name]
+		    dict set myNodeDict $node array_name $array_name
 		    set var [set array_name]($value)
 		    $self add-choice-of $node $name $value
 		}
@@ -164,15 +244,15 @@ snit::type ::minhtmltk::formstate {
 		}
 	    }
 	    foreach {meth trace} {
-		getter write
-		setter read
+		getter read
+		setter write
 	    } {
 		if {[set cmd [from args $meth ""]] ne ""} {
-		    if {[llength $cmd] != 2} {
-			error "Node $meth must be an LAMBDA (of apply)!"
+		    if {[llength [lindex $cmd 0]] != 2} {
+			error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
 		    }
 		    trace add variable $var $trace \
-			[list $self trace handle $trace $cmd]
+			[list $self trace handle $trace $var $cmd]
 		}
 	    }
 	    if {[llength $args]} {
@@ -182,11 +262,11 @@ snit::type ::minhtmltk::formstate {
 	
 	$self node var $node
     }
-    method {trace handle read} {command varName args} {
-	set $varName [apply $command]
+    method {trace handle read} {varName apply args} {
+	set $varName [apply {*}$apply]
     }
-    method {trace handle write} {command varName args} {
-	apply $command [set $varName]
+    method {trace handle write} {varName apply args} {
+	apply {*}$apply [set $varName]
     }
 
     method add-name-of {node name} {
@@ -216,6 +296,7 @@ snit::type ::minhtmltk::formstate {
 	if {[dict exists $myNodeDict $node]} {
 	    error "Duplicate node name! $node"
 	}
+	lappend myNodeList $node
 	dict set myNodeDict $node \
 	    [dict create kind $kind name $name value $value attr $attr\
 		type "" var "" is_array 0]

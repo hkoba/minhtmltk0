@@ -14,7 +14,7 @@ namespace eval ::minhtmltk {
     namespace import ::minhtmltk::utils::*
 }
 
-source [file dirname [info script]]/formstate.tcl
+source [file dirname [info script]]/formstate1.tcl
 
 snit::widget minhtmltk {
     component myHtml -public document -inherit yes
@@ -297,6 +297,14 @@ snit::widget minhtmltk {
             [string map [list \r ""] $data]
     }
 
+    method innerTextPre node {
+	set contents {}
+	foreach kid [$node children] {
+	    append contents [$kid text -pre]
+	}
+	set contents
+    }
+
     #
     # <textarea>
     #
@@ -307,23 +315,21 @@ snit::widget minhtmltk {
 		set t $path.text
 		#set t $path
                 text $t -width [$node attr -default 60 cols]\
-		    -height [$node attr -default 10 rows]
+		    -height [$node attr -default 10 rows] \
+		    -undo yes
 		$path setwidget $t
 		$path configure -width 600 -height 100
 
-                set item [$form item register node single $node \
-                              [node-atts-assign $node name value]]
-                set var [$form item var $item]
-                trace add variable $var read \
-                    [list $self variable textarea read $t $item]
-                trace add variable $var write \
-                    [list $self variable textarea write $t $item]
-
-                set contents {}
-                foreach kid [$node children] {
-                    append contents [$kid text -pre]
-                }
-                set $var $contents
+                set var [$form node add text $node \
+			     [node-atts-assign $node name value] \
+			     getter [list {{t} {
+				 $t get 1.0 end-1c
+			     }} $t] \
+			     setter [list {{t value} {
+				 $t delete 1.0 end
+				 $t insert end $value
+			     }} $t]]
+                set $var [$self innerTextPre $node]
             }
         }
     }
@@ -354,9 +360,9 @@ snit::widget minhtmltk {
     }
 
     method {add input text} {path node form args} {
-        set item [$form item register node single $node \
-                      [node-atts-assign $node name value]]
-        set var [$form item var $item]
+        $form node add text $node \
+	    [node-atts-assign $node name value]
+        set var [$form node var $node]
         set $var $value
         ::ttk::entry $path \
             -textvariable $var \
@@ -378,17 +384,16 @@ snit::widget minhtmltk {
     }
         
     method {add input submit} {path node form args} {
-        set item [$form item register node submit $node \
-                      [node-atts-assign $node name {value Submit}]]
+        $form node add submit $node \
+	    [node-atts-assign $node name {value Submit}]
         ttk::button $path -takefocus 1 -text $value \
             -command [list $self trigger submit $form $name] {*}$args
     }
 
     method {add input checkbox} {path node form args} {
-        set item [$form item register node multi $node \
-                      [list has-choice yes \
-                           {*}[node-atts-assign $node name {value on}]]]
-        set var [$form item var $item $value]
+        $form node add multi $node \
+	    [node-atts-assign $node name {value on}]
+        set var [$form node var $node]
         if {[$node attr -default "no" checked] ne "no"} {
             set $var 1
         } else {
@@ -398,10 +403,9 @@ snit::widget minhtmltk {
     }
 
     method {add input radio} {path node form args} {
-        set item [$form item register node single $node \
-                      [list has-choice yes \
-                           {*}[node-atts-assign $node name {value on}]]]
-        set var [$form item var $item]
+        $form node add single $node \
+	    [node-atts-assign $node name {value on}]
+        set var [$form node var $node]
         if {[$node attr -default "no" checked] ne "no"} {
             set $var $value
         }
@@ -409,9 +413,9 @@ snit::widget minhtmltk {
     }
 
     method {add input hidden} {path node form args} {
-        set item [$form item register node single $node \
-                      [node-atts-assign $node name value]]
-        set var [$form item var $item]
+        $form node add single $node \
+	    [node-atts-assign $node name value]
+        set var [$form node var $node]
         set $var $value
     }
 }

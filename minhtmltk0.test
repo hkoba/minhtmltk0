@@ -48,9 +48,12 @@ test $P-$C-[incr I]-parse "Input without <form> is mimiced as form 0" -body {
     set form [.ht form get 0]
     set res {}
     lappend res [$form names]
+    lappend res [list q1 [$form get q1] q2 [$form get q2]]
     lappend res [$form get_all]
     set res
-} -result [list [list q1 q2] [list q1 "" q2 ""]]
+} -result [list [list q1 q2] \
+	       [list q1 "" q2 ""] \
+	       [list q1 "" q2 ""]]
 
 #----------------------------------------
 incr C
@@ -92,20 +95,15 @@ test $P-$C-[incr I]-parse "Radio with value" -body {
     set form [.ht form get 0]
 
     set res []
-    lappend res init [$form get_all]
-    set item [$form item of-name q1]
-    lappend res [$item get missing]
+    lappend res [list init [$form get_all]]
 
-    $item set 3
-    lappend res to:be:3 [$form get_all]
-    lappend res [$item get]
+    set [$form namedvars q1 0] 3
+    lappend res [list to:be:3 [$form get_all]]
 
     set res
 } -result [list \
-               init [] \
-               0 \
-               to:be:3 [list q1 3] \
-               3 \
+               [list init []] \
+	       [list to:be:3 [list q1 3]] \
            ]
 
 test $P-$C-[incr I]-parse "Radio with checked" -body {
@@ -121,13 +119,12 @@ test $P-$C-[incr I]-parse "Radio with checked" -body {
     set form [.ht form get 0]
 
     set res []
-    lappend res init [$form get_all]
-    set item [$form item of-name q1]
-    lappend res [$item get]
+    lappend res [list init [$form get_all]]
+    lappend res [$form get q1]
 
     set res
 } -result [list \
-               init [list q1 2] \
+               [list init [list q1 2]] \
                2 \
            ]
 
@@ -146,16 +143,14 @@ test $P-$C-[incr I]-parse "Radio without value" -body {
 
     set res []
     lappend res init [$form get_all]
-    foreach qname [$form names] {
-        set item [$form item of-name $qname]
-
+    foreach at [list 0 1 2] {
         # Directly invoke and set on.
         # set node [lindex [$item nodelist] 0]
         # puts stderr node-at:0=[$item node-at 0]=$node
         # set radio [$node replace]; # get replacement.
-        # puts stderr node-widget-at:0=[$item node-widget-at 0]=$radio
-        [$item node-widget-at 0] invoke
-        # [$item node widget at 0] invoke
+        # puts stderr node-widget-at:0=[$form node widget at 0]=$radio
+
+        [$form node widget at $at] invoke
     }
     lappend res set-all [$form get_all]
 
@@ -183,45 +178,61 @@ test $P-$C-[incr I]-parse "Checkbox with value" -body {
     set form [.ht form get 0]
 
     set res []
-    lappend res init [$form get_all]
-    set item [$form item of-name q1]
-    lappend res [list [$item get missing] [$item get]]
+    lappend res [list init [$form get_all]]
 
     # $item set [list 1 3]
-    [$item node-widget-at 0] invoke
-    [$item node-widget-at 2] invoke
-    lappend res to:be:1,3 [$form get_all]
-    lappend res [list [$item get missing] [$item get]]
+    [$form node widget at 0] invoke
+    [$form node widget at 2] invoke
+    lappend res [list to:be:1,3 [$form get_all]]
 
     # clear 1, 3
-    [$item node-widget-at 0] invoke
-    [$item node-widget-at 2] invoke
-    lappend res "cleared-again" [$form get_all]
-    lappend res [list [$item get missing] [$item get]]
-
+    [$form node widget at 0] invoke
+    [$form node widget at 2] invoke
+    lappend res [list "cleared-again" [$form get_all]]
 
     set res
 } -result [list \
-               init [] \
-               [list 0 {}] \
-               "to:be:1,3" [list q1 [list 1 3]] \
-               [list 2 [list 1 3]] \
-               "cleared-again" [] \
-               [list 0 {}] \
+               [list init []] \
+               [list "to:be:1,3" [list q1 [list 1 3]]] \
+               [list "cleared-again" []] \
            ]
 
 test $P-$C-[incr I]-parse "Checkbox item set {1 3}" -body {
     set res ""
-    $item set [list 1 3]
-    lappend res to:be:1,3 [$form get_all]
-    lappend res [list [$item get missing] [$item get]]
+    $form set q1 [list 1 3]
+    lappend res [list to:be:1,3 [$form get_all]]
+    lappend res [list [$form get q1 missing] [$form get q1]]
 } -result [list \
-               "to:be:1,3" [list q1 [list 1 3]] \
+               [list "to:be:1,3" [list q1 [list 1 3]]] \
                [list 2 [list 1 3]] \
               ]
 
 
 #----------------------------------------
+incr C
+
+test $P-$C-[incr I]-parse "textarea" -body {
+    .ht Reset
+    .ht parse -final {
+        <form>
+	<textarea name="q1">foobar</textarea>
+        </form>
+    }
+    
+    set form [.ht form get 0]
+
+    set res []
+    lappend res init [$form get_all]
+
+    $form set q1 3
+
+    lappend res to:be:3 [$form get_all]
+
+    set res
+} -result [list \
+               init [list q1 foobar] \
+               to:be:3 [list q1 3] \
+           ]
 
 catch {destroy .}
 
