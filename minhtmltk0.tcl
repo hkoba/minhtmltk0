@@ -144,8 +144,25 @@ snit::widget minhtmltk {
         set path [$self node path $node]
         uplevel 1 $command
         if {$path ne ""} {
-            $node replace $path -deletecmd [list destroy $path]
+            $node replace $path -deletecmd [list destroy $path] \
+		-configurecmd [list $self node configure $path]
         }
+    }
+
+    method {node configure} {path values} {
+	if {[set font [from values font ""]] eq ""} {
+	    if {![catch {$path cget -font} font]} {
+		return 0
+	    }
+	}
+	$self font-baseline $path $font
+    }
+
+    # Stolen from hv3_form.tcl ::hv3::forms::configurecmd
+    method font-baseline {path font} {
+	set descent [font metrics $font -descent]
+	set ascent  [font metrics $font -ascent]
+	expr {([winfo reqheight $path] + $descent - $ascent) / 2}
     }
 
     method {node path} node {
