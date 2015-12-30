@@ -48,8 +48,6 @@ snit::type ::minhtmltk::formstate {
     typevariable ourSlots -array [set ls {}; foreach i {
 	kind
 	var
-	is_array
-	array_name
 	type
 	name
 	value
@@ -63,7 +61,7 @@ snit::type ::minhtmltk::formstate {
 	set result {}
 	foreach name $names {
 	    set nodelist [dict get $myNameDict $name nodeList]
-	    set is_array [dict get $myNodeDict [lindex $nodelist 0] is_array]
+	    set is_array [dict get $myNameDict $name is_array]
 	    # set values {}
 	    foreach node $nodelist {
 		$self current node with name value $node {
@@ -86,11 +84,11 @@ snit::type ::minhtmltk::formstate {
 	if {![dict exists $myNameDict $name]} {
 	    error "Unknown name! $name"
 	}
-	set fst_node [lindex [dict get $myNameDict $name nodeList] 0]
-	set is_array [dict get $myNodeDict $fst_node is_array]
+	set is_array [dict get $myNameDict $name is_array]
 	if {$is_array} {
 	    $self array set $name $value
 	} else {
+	    set fst_node [lindex [dict get $myNameDict $name nodeList] 0]
 	    set [$self node var $fst_node] $value
 	}
     }
@@ -104,7 +102,7 @@ snit::type ::minhtmltk::formstate {
     #
     method {node serialize} {{node_list ""}} {
 	if {$node_list eq ""} {
-	    set node_list [dict keys $myNodeDict]
+	    set node_list $myNodeList
 	}
 	set result ""
 	foreach node $node_list {
@@ -124,7 +122,7 @@ snit::type ::minhtmltk::formstate {
 	upvar 1 name name
 	set name [dict get $myNodeDict $node name]
 	upvar 1 value value
-	if {[dict get $myNodeDict $node is_array]} {
+	if {[dict get $myNameDict $name is_array]} {
 	    # multi
 	    if {[set $vn]} {
 		set value [dict get $myNodeDict $node value]
@@ -149,7 +147,7 @@ snit::type ::minhtmltk::formstate {
 	}
 	set dict [dict get $myNameDict $name]
 	set fst_node [lindex [dict get $dict nodeList] 0]
-	if {[$self node dict get $fst_node is_array]} {
+	if {[dict get $dict is_array]} {
 	    set result [$self array get $name]
 	    if {$outVar ne ""} {
 		return [llength $result]
@@ -173,8 +171,7 @@ snit::type ::minhtmltk::formstate {
     }
 
     method {array get} name {
-	set fst_node [lindex [dict get $myNameDict $name nodeList] 0]
-	set arrayName [$self node dict get $fst_node array_name]
+	set arrayName [dict get $myNameDict $name array_name]
 	set result {}
 	foreach value [$self choicelist $name] {
 	    if {[default [set arrayName]($value) 0]} {
@@ -185,8 +182,7 @@ snit::type ::minhtmltk::formstate {
     }
 
     method {array set} {name values} {
-	set fst_node [lindex [dict get $myNameDict $name nodeList] 0]
-	set arrayName [$self node dict get $fst_node array_name]
+	set arrayName [dict get $myNameDict $name array_name]
 	foreach choice [$self choicelist $name] {
 	    set [set arrayName]($choice) [expr {$choice in $values}]
 	}
@@ -231,9 +227,8 @@ snit::type ::minhtmltk::formstate {
 		    $self add-choice-of $node $name $value
 		}
 		multi {
-		    set is_array 1
-		    set array_name ${selfns}::_M[$self add-name-of $node $name]
-		    dict set myNodeDict $node array_name $array_name
+		    set array_name ${selfns}::_M[$self add-name-of $node $name 1]
+		    dict set myNameDict $name array_name $array_name
 		    set var [set array_name]($value)
 		    $self add-choice-of $node $name $value
 		}
@@ -269,14 +264,19 @@ snit::type ::minhtmltk::formstate {
 	apply {*}$apply [set $varName]
     }
 
-    method add-name-of {node name} {
+    method add-name-of {node name {_is_array 0}} {
 	if {![dict exists $myNameDict $name]} {
 	    dict set myNameDict $name [dict create \
 					   nodeList [list $node] \
 					   choiceList [list] \
-					   choiceDict [dict create]]
+					   choiceDict [dict create] \
+					   is_array $_is_array \
+					  ]
 	} else {
 	    dict with myNameDict $name {
+		if {$is_array != $_is_array} {
+		    error "Var $name is_array is changed(was $is_array, new $_is_array)"
+		}
 		lappend nodeList $node
 	    }
 	}
@@ -291,6 +291,10 @@ snit::type ::minhtmltk::formstate {
 	}
     }
 
+    method {name dict get} {name key} {
+	dict get $myNameDict $name $key
+    }
+
     method {node count} {} {dict size $myNodeDict}
     method {node intern} {kind node name value attr} {
 	if {[dict exists $myNodeDict $node]} {
@@ -299,12 +303,13 @@ snit::type ::minhtmltk::formstate {
 	lappend myNodeList $node
 	dict set myNodeDict $node \
 	    [dict create kind $kind name $name value $value attr $attr\
-		type "" var "" is_array 0]
+		type "" var ""]
 	set node
     }
     method {node var} {node} {
 	$self node dict get $node $ourSlots(var)
     }
+
     method {node dict set} {node key value} {
 	dict set myNodeDict $node $ourSlots($key) $value
     }

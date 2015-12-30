@@ -53,9 +53,10 @@ foreach value [list 1 2 3] {
 
     test $P-node-dict-get-[incr i] "\$form node dict get" -body {
 	set res ""
-	foreach k [list name value is_array] {
+	foreach k [list name value] {
 	    lappend res [$form node dict get $node $k]
 	}
+	lappend res [$form name dict get $name is_array]
 	set res
     } -result [list ss1 $value 0]
 }
@@ -88,9 +89,10 @@ foreach value [list 1 2 3] {
     
     test $P-node-dict-get-[incr i] "\$form node dict get" -body {
 	set res ""
-	foreach k [list name value is_array] {
+	foreach k [list name value] {
 	    lappend res [$form node dict get $node $k]
 	}
+	lappend res [$form name dict get $name is_array]
 	set res
     } -result [list $name $value 1]
 }
@@ -122,9 +124,10 @@ foreach value [list foo bar baz] {
     
     test $P-node-dict-get-[incr i] "\$form node dict get" -body {
 	set res ""
-	foreach k [list name value is_array] {
+	foreach k [list name value] {
 	    lappend res [$form node dict get $node $k]
 	}
+	lappend res [$form name dict get $name is_array]
 	set res
     } -result [list $name $value 0]
 }
