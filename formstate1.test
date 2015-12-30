@@ -20,6 +20,7 @@ proc iota1 {n} {
 }
 
 #========================================
+set t_nodes {}
 set t_names {}
 set t_pairs {}
 set i 0
@@ -27,27 +28,129 @@ set i 0
 test $P-create "" -body {
     set form [$type %AUTO%]
     list [$form cget -name] [$form cget -action] [$form cget -node] \
-        [$form names] [$form get_all]
+        [$form names] [$form node serialize]
 } -result [list "" "" "" "" ""]
 
 #========================================
 # Underlying [$form node *] intefaces
 
-set value dval[incr d]
-test $P-node-dict-get-[incr i] "" -body {
-    
-    set name dummy$d
-    set node node-$name
-    $form node add single  \
-	$node [list name $name value foo]
-    
-    set res ""
-    foreach k [list name value is_array] {
-	lappend res [$form node dict get $node $k]
-    }
-    set res
-} -result [list dummy1 foo 0]
+#----------------------------------------
+# single
+#
+incr D
+set name ss1
+lappend t_names $name
+foreach value [list 1 2 3] {
 
+    test $P-node-add-single-value=$value "\$form node add single name=$name value=$value" -body {
+	set node node-$name-[incr i]
+	$form node add single  \
+	    $node [list name $name value $value]
+    } -match regexp -result {^::minhtmltk::formstate::Snit_inst\d+::_S\d+$}
+
+    lappend t_nodes $node
+    lappend t_pairs $name $value
+
+    test $P-node-dict-get-[incr i] "\$form node dict get" -body {
+	set res ""
+	foreach k [list name value is_array] {
+	    lappend res [$form node dict get $node $k]
+	}
+	set res
+    } -result [list ss1 $value 0]
+}
+
+test $P-name-[incr i] "" -body {
+    set res {}
+    lappend res [$form names]
+    lappend res [$form choicelist $name]
+    lappend res [$form node serialize $t_nodes]
+    set res
+} -result [list [list $name] [list 1 2 3] []]
+
+
+#----------------------------------------
+# multi
+
+incr D
+set name mm1
+lappend t_names $name
+foreach value [list 1 2 3] {
+
+    test $P-node-add-multi-value=$value "\$form node add multi name=$name value=$value" -body {
+	set node node-$name-[incr i]
+	$form node add multi  \
+	    $node [list name $name value $value]
+    } -match regexp -result {^::minhtmltk::formstate::Snit_inst\d+::_M\d+\(\d+\)$}
+
+    lappend t_nodes $node
+    lappend t_pairs $name $value
+    
+    test $P-node-dict-get-[incr i] "\$form node dict get" -body {
+	set res ""
+	foreach k [list name value is_array] {
+	    lappend res [$form node dict get $node $k]
+	}
+	set res
+    } -result [list $name $value 1]
+}
+
+test $P-name-[incr i] "" -body {
+    set res {}
+    lappend res [$form names]
+    lappend res [$form choicelist $name]
+    lappend res [$form node serialize $t_nodes]
+    set res
+} -result [list $t_names [list 1 2 3] []]
+
+#----------------------------------------
+# text
+
+incr D
+set name tt1
+lappend t_names $name
+foreach value [list foo bar baz] {
+
+    test $P-node-add-text-value=$value "\$form node add text name=$name value=$value" -body {
+	set node node-$name-[incr i]
+	$form node add text  \
+	    $node [list name $name value $value]
+    } -match regexp -result {^::minhtmltk::formstate::Snit_inst\d+::_T\d+$}
+
+    lappend t_nodes $node
+    lappend t_pairs $name $value
+    
+    test $P-node-dict-get-[incr i] "\$form node dict get" -body {
+	set res ""
+	foreach k [list name value is_array] {
+	    lappend res [$form node dict get $node $k]
+	}
+	set res
+    } -result [list $name $value 0]
+}
+
+test $P-name-[incr i] "" -body {
+    set res {}
+    lappend res [$form names]
+    lappend res [$form choicelist $name]
+    lappend res [$form node serialize $t_nodes]
+    set res
+} -result [list $t_names [] [list $name foo $name bar $name baz]]
+
+test $P-set-serialize-[incr i] "" -body {
+    set [lindex [$form namedvars ss1] 0] 2
+    set [lindex [$form namedvars mm1] 0] 1
+    set [lindex [$form namedvars tt1] 0] FOO
+    $form node serialize $t_nodes
+} -result [list ss1 2 mm1 [list 1] \
+	       $name FOO $name bar $name baz]
+
+test $P-set-serialize-[incr i] "" -body {
+    unset [lindex [$form namedvars ss1] 0]
+    unset [lindex [$form namedvars mm1] 0]
+    unset [lindex [$form namedvars tt1] 0]; # XXX: Unrealistic.
+    $form node serialize $t_nodes
+} -result [list $name bar $name baz]
 
 
 # #========================================

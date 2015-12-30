@@ -28,6 +28,22 @@ snit::type ::minhtmltk::formstate {
     variable myNameList {}
     variable myNameDict [dict create]
     
+    # 
+    option -debug no
+    method dvars {msg varName args} {
+	if {$options(-debug)} {
+	    puts -nonewline stderr "$msg "
+	    foreach vn [list $varName {*}$args] {
+		if {[info exists $vn]} {
+		    puts -nonewline stderr "$vn=[set $vn] "
+		} else {
+		    puts -nonewline stderr "${vn}:unset "
+		}
+	    }
+	    puts stderr ""
+	}
+    }
+
     typevariable ourSlots -array [set ls {}; foreach i {
 	kind
 	var
@@ -44,7 +60,7 @@ snit::type ::minhtmltk::formstate {
     # Returns `name` `value` (flattened) list in $NODE_LIST order.
     # Same `name` can occur multiple times as in usual HTTP query string
     #
-    method serialize {{node_list ""}} {
+    method {node serialize} {{node_list ""}} {
 	if {$node_list eq ""} {
 	    set node_list [dict keys $myNodeDict]
 	}
@@ -54,9 +70,16 @@ snit::type ::minhtmltk::formstate {
 	    set vn [dict get $myNodeDict $node var]
 	    if {![info exists $vn]} continue
 	    if {[dict get $myNodeDict $node is_array]} {
-		lappend $name [dict get $myNodeDict $node value]
+		# multi
+		lappend result $name [dict get $myNodeDict $node value]
+	    } elseif {[dict get $myNameDict $name choiceList] ne ""} {
+		# single
+		if {[set $vn] eq [dict get $myNodeDict $node value]} {
+		    lappend result $name [set $vn]
+		}
 	    } else {
-		lappend $name [set $vn]
+		# otherwise
+		lappend result $name [set $vn]
 	    }
 	}
 	set result
@@ -105,15 +128,14 @@ snit::type ::minhtmltk::formstate {
 	dict get $myNameDict $name choiceList
     }
 
-    option -debug yes
-    method dvars {msg varName args} {
-	if {$options(-debug)} {
-	    puts -nonewline stderr "$msg "
-	    foreach vn [list $varName {*}$args] {
-		puts -nonewline stderr "$vn=[set $vn] "
+    method namedvars name {
+	set varlist {}
+	dict with myNameDict $name {
+	    foreach node $nodeList {
+		lappend varlist [$self node var $node]
 	    }
-	    puts stderr ""
 	}
+	set varlist
     }
 
     method {node add} {kind node attr args} {
@@ -138,6 +160,7 @@ snit::type ::minhtmltk::formstate {
 		default {
 		    $self add-name-of $node $name
 		    set var ${selfns}::_T[$self node count]
+		    set $var $value
 		}
 	    }
 	    foreach {meth trace} {
@@ -156,7 +179,8 @@ snit::type ::minhtmltk::formstate {
 		error "Unknown node arguments: $args"
 	    }
 	}
-
+	
+	$self node var $node
     }
     method {trace handle read} {command varName args} {
 	set $varName [apply $command]
