@@ -109,22 +109,26 @@ snit::widget minhtmltk {
 
     option -handle-parse [list form]
     option -handle-script [list style]
-    option -handle-node [list textarea]
+    option -handle-node [list [list input by-input-type]\
+			     textarea]
     # To be handled
     list {
         a link
-        textarea select button
+        select button
         iframe menu
         base meta title object embed
     }
 
     method install-html-handlers {} {
         
-        $myHtml handler node input [list $self logged add by-input-type]
-
         foreach kind {parse script node} {
-            foreach tag $options(-handle-$kind) {
-                set meth [list add $kind $tag]
+            foreach spec $options(-handle-$kind) {
+		lassign $spec tag handler
+		if {$handler ne ""} {
+		    set meth [list add $handler]
+		} else {
+		    set meth [list add $kind $tag]
+		}
                 if {![llength [$self info methods $meth]]} {
                     error "Can't find tag handler for $tag"
                 }
@@ -198,7 +202,6 @@ snit::widget minhtmltk {
     variable stateInForm ""
     variable stateFormList {}
     variable stateFormNameDict -array {}
-    # XXX: stateFormPathDict も有るべきか？ selector から逆引きしやすいように…
     variable stateOuterForm ""
 
     method {add parse form} {node args} {
@@ -333,13 +336,6 @@ snit::widget minhtmltk {
             }
         }
     }
-    method {variable textarea read} {text item varName keyName args} {
-        set [set varName]($keyName) [$text get 1.0 end-1c]
-    }
-    method {variable textarea write} {text item varName keyName args} {
-        $text delete 1.0 end
-        $text insert end [set [set varName]($keyName)]
-    }
 
     #----------------------------------------
     # <input type=...>
@@ -360,10 +356,8 @@ snit::widget minhtmltk {
     }
 
     method {add input text} {path node form args} {
-        $form node add text $node \
-	    [node-atts-assign $node name value]
-        set var [$form node var $node]
-        set $var $value
+        set var [$form node add text $node \
+		     [node-atts-assign $node name value]]
         ::ttk::entry $path \
             -textvariable $var \
             -width [$node attr -default 20 size] {*}$args
@@ -391,21 +385,15 @@ snit::widget minhtmltk {
     }
 
     method {add input checkbox} {path node form args} {
-        $form node add multi $node \
-	    [node-atts-assign $node name {value on}]
-        set var [$form node var $node]
-        if {[$node attr -default "no" checked] ne "no"} {
-            set $var 1
-        } else {
-            set $var 0
-        }
+        set var [$form node add multi $node \
+		     [node-atts-assign $node name {value on}]]
+	set $var [expr {[$node attr -default "no" checked] ne "no"}]
         ttk::checkbutton $path -variable $var
     }
 
     method {add input radio} {path node form args} {
-        $form node add single $node \
-	    [node-atts-assign $node name {value on}]
-        set var [$form node var $node]
+        set var [$form node add single $node \
+		     [node-atts-assign $node name {value on}]]
         if {[$node attr -default "no" checked] ne "no"} {
             set $var $value
         }
@@ -413,10 +401,8 @@ snit::widget minhtmltk {
     }
 
     method {add input hidden} {path node form args} {
-        $form node add single $node \
+        $form node add text $node \
 	    [node-atts-assign $node name value]
-        set var [$form node var $node]
-        set $var $value
     }
 }
 
