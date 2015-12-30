@@ -35,8 +35,8 @@ snit::type ::minhtmltk::formstate {
 	if {$options(-debug)} {
 	    puts -nonewline stderr "$msg "
 	    foreach vn [list $varName {*}$args] {
-		if {[info exists $vn]} {
-		    puts -nonewline stderr "$vn=[set $vn] "
+		if {[uplevel 1 [list info exists $vn]]} {
+		    puts -nonewline stderr "$vn=[uplevel 1 [list set $vn]] "
 		} else {
 		    puts -nonewline stderr "${vn}:unset "
 		}
@@ -124,7 +124,8 @@ snit::type ::minhtmltk::formstate {
 	upvar 1 value value
 	if {[dict get $myNameDict $name is_array]} {
 	    # multi
-	    if {[set $vn]} {
+	    $self dvars "Var of $name" $vn
+	    if {[set $vn] ne "" && [set $vn]} {
 		set value [dict get $myNodeDict $node value]
 		uplevel 1 $command
 	    }
@@ -219,6 +220,15 @@ snit::type ::minhtmltk::formstate {
 	    [set value [dict-cut attr value ""]] \
 	    $attr
 	$self dvars "node add" myNodeDict
+	set arrayTraces {}
+	foreach {meth trace} {
+	    array-getter read
+	    array-setter write
+	} {
+	    if {[set cmd [from args $meth ""]] ne ""} {
+		lappend arrayTraces [list $meth $trace $cmd]
+	    }
+	}
 	dict with myNodeDict $node {
 	    switch $kind {
 		single {
@@ -247,7 +257,7 @@ snit::type ::minhtmltk::formstate {
 			error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
 		    }
 		    trace add variable $var $trace \
-			[list $self trace handle $trace $var $cmd]
+			[list $self trace scalar $trace $var $cmd]
 		}
 	    }
 	    if {[llength $args]} {
@@ -255,13 +265,31 @@ snit::type ::minhtmltk::formstate {
 	    }
 	}
 	
+	foreach spec $arrayTraces {
+	    lassign $spec meth trace cmd
+	    set array_name [dict get $myNameDict $name array_name]
+	    if {[llength [lindex $cmd 0]] != 2} {
+		error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
+	    }
+	    trace add variable $array_name $trace \
+		[list $self trace array $trace $cmd]
+	}
+
 	$self node var $node
     }
-    method {trace handle read} {varName apply args} {
+    method {trace scalar read} {varName apply args} {
 	set $varName [apply {*}$apply]
     }
-    method {trace handle write} {varName apply args} {
+    method {trace scalar write} {varName apply args} {
 	apply {*}$apply [set $varName]
+    }
+    method {trace array read} {apply arrayName ix args} {
+	set [set arrayName]($ix) [apply {*}$apply $ix]
+	$self dvars "trace array read " arrayName ix
+    }
+    method {trace array write} {apply arrayName ix args} {
+	apply {*}$apply $ix [set [set arrayName]($ix)]
+	$self dvars "trace array write " arrayName ix
     }
 
     method add-name-of {node name {_is_array 0}} {

@@ -267,16 +267,46 @@ test $P-$C-[incr I]-parse "select single" -body {
     set form [.ht form get 0]
 
     set res []
-    lappend res init [$form get_all]
+    lappend res [list init [$form get_all]]
 
     $form set q1 3
 
-    lappend res to:be:3 [$form get_all]
+    lappend res [list to:be:3 [$form get_all]]
 
     set res
 } -result [list \
-               init [list q1 ""] \
-               to:be:3 [list q1 3] \
+               [list init [list q1 ""]] \
+               [list to:be:3 [list q1 3]] \
+           ]
+
+test $P-$C-[incr I]-parse "select multi" -body {
+    .ht Reset
+    .ht parse -final {
+        <form>
+	<select name="q1" multi>
+	<option value="">Please choose from followings:</option>
+	<option value="1">Apple</option>
+	<option value="2">Orange</option>
+	<option value="3">Strawberry</option>
+	<option value="4">Lemon</option>
+	<option value="5">Banana</option>
+	</select>
+        </form>
+    }
+    
+    set form [.ht form get 0]
+
+    set res []
+    lappend res [list init [$form get_all]]
+
+    $form set q1 [list 1 4 5]
+
+    lappend res [list to:be:1,4,5 [$form get_all]]
+
+    set res
+} -result [list \
+               [list init []] \
+               [list to:be:1,4,5 [list q1 [list 1 4 5]]] \
            ]
 
 

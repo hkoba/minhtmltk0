@@ -374,6 +374,40 @@ snit::widget minhtmltk {
 	ttk::combobox $path -state readonly -values $labelList
 	if {$selected ne ""} {
 	    $path current $selected
+	} else {
+	    $path current 0
+	}
+    }
+
+    method {add select-multi} {path selNode form args} {
+	set name [$selNode attr -default "" name]
+	lassign [$self form collect options $selNode] \
+	    nodeDefs labelList selected
+
+	foreach spec $nodeDefs {
+	    lassign $spec node value
+	    $form node add multi $node \
+		[dict create name $name value $value] \
+		array-getter [list {{path form name ix} {
+		    set pos [lsearch -exact [$form choicelist $name] $ix]
+		    if {$pos < 0} return
+		    $path selection includes $pos
+		}} $path $form $name] \
+		array-setter [list {{path form name ix value} {
+		    set pos [lsearch -exact [$form choicelist $name] $ix]
+		    if {$pos < 0} return
+		    if {$value} {
+			$path selection set $pos
+		    } else {
+			$path selection clear $pos
+		    }
+		}} $path $form $name]
+	}
+	listbox $path -selectmode extended
+	$path insert end {*}$labelList
+	$path selection clear 0 end
+	foreach sel $selected {
+	    $path selection set $sel
 	}
     }
 
