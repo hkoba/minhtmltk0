@@ -353,17 +353,11 @@ snit::widget minhtmltk {
     
     method {add select-single} {path selNode form args} {
 	set name [$selNode attr -default "" name]
-	set labelList {}
-	set i -1
-	set selected ""
-	foreach node [$self search option -root $selNode] {
-	    incr i
-	    lappend labelList [set label [[lindex [$node children] 0] text]]
-	    set value [if {"value" in [$node attr]} {
-		$node attr value
-	    } else {
-		set label
-	    }]
+	lassign [$self form collect options $selNode] \
+	    nodeDefs labelList selected
+
+	foreach spec $nodeDefs {
+	    lassign $spec node value
 	    $form node add single $node \
 		[dict create name $name value $value] \
 		getter [list {{path form name} {
@@ -376,9 +370,6 @@ snit::widget minhtmltk {
 			$path current $pos
 		    }
 		}} $path $form $name]
-	    if {[$node attr -default no selected] ne "no"} {
-		set selected $i
-	    }
 	}
 	ttk::combobox $path -state readonly -values $labelList
 	if {$selected ne ""} {
@@ -386,6 +377,27 @@ snit::widget minhtmltk {
 	}
     }
 
+    method {form collect options} {selNode} {
+	set name [$selNode attr -default "" name]
+	set nodeDefs {}
+	set labelList {}
+	set selected {}
+	set i -1
+	foreach node [$self search option -root $selNode] {
+	    incr i
+	    lappend labelList [set label [[lindex [$node children] 0] text]]
+	    set value [if {"value" in [$node attr]} {
+		$node attr value
+	    } else {
+		set label
+	    }]
+	    lappend nodeDefs [list $node $value]
+	    if {[$node attr -default no selected] ne "no"} {
+		lappend selected $i
+	    }
+	}
+	list $nodeDefs $labelList $selected
+    }
 
     #----------------------------------------
     # <input type=...>
