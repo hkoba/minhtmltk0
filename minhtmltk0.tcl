@@ -110,11 +110,13 @@ snit::widget minhtmltk {
     option -handle-parse [list form]
     option -handle-script [list style]
     option -handle-node [list [list input by-input-type]\
-			     textarea]
+			     textarea \
+			     select \
+			    ]
     # To be handled
     list {
         a link
-        select button
+        button
         iframe menu
         base meta title object embed
     }
@@ -336,6 +338,54 @@ snit::widget minhtmltk {
             }
         }
     }
+
+    method {add node select} node {
+        $self with form {
+            $self with path-of $node {
+		if {[$node attr -default "no" multi] ne "no"} {
+		    $self add select-multi $path $node $form
+		} else {
+		    $self add select-single $path $node $form
+		}
+	    }
+	}
+    }
+    
+    method {add select-single} {path selNode form args} {
+	set name [$selNode attr -default "" name]
+	set labelList {}
+	set i -1
+	set selected ""
+	foreach node [$self search option -root $selNode] {
+	    incr i
+	    lappend labelList [set label [[lindex [$node children] 0] text]]
+	    set value [if {"value" in [$node attr]} {
+		$node attr value
+	    } else {
+		set label
+	    }]
+	    $form node add single $node \
+		[dict create name $name value $value] \
+		getter [list {{path form name} {
+		    lindex [$form choicelist $name] \
+			[$path current]
+		}} $path $form $name] \
+		setter [list {{path form name value} {
+		    set pos [lsearch -exact [$form choicelist $name] $value]
+		    if {$pos >= 0} {
+			$path current $pos
+		    }
+		}} $path $form $name]
+	    if {[$node attr -default no selected] ne "no"} {
+		set selected $i
+	    }
+	}
+	ttk::combobox $path -state readonly -values $labelList
+	if {$selected ne ""} {
+	    $path current $selected
+	}
+    }
+
 
     #----------------------------------------
     # <input type=...>
