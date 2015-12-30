@@ -12,7 +12,9 @@ set P formstate1
 set type ::minhtmltk::formstate
 
 test $P-init load -body {
-    source [file rootname [info script]].tcl
+    set abs [file normalize [info script]]
+    source [file join [file dirname [file dirname $abs]] \
+		[file rootname [file tail $abs]].tcl]
 } -result $type
 
 proc iota1 {n} {
