@@ -143,7 +143,7 @@ snit::widget minhtmltk {
         upvar 1 path path
         set path [$self node path $node]
         uplevel 1 $command
-        if {$path ne ""} {
+        if {[info exists path] && $path ne ""} {
             $node replace $path -deletecmd [list destroy $path] \
 		-configurecmd [list $self node configure $path]
         }
@@ -493,6 +493,8 @@ snit::widget minhtmltk {
     method {add input submit} {path node form args} {
         $form node add submit $node \
 	    [node-atts-assign $node name {value Submit}]
+
+	# XXX: This -command behavior is experimental.
         ttk::button $path -takefocus 1 -text $value \
             -command [list $self trigger submit $form $name] {*}$args
     }
