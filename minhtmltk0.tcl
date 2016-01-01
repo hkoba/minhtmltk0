@@ -198,8 +198,6 @@ snit::widget minhtmltk {
 	set result {}
 	set altList [if {$options(-generate-tag-class-event)} {
 	    tag-class-list-of-node $startNode
-	} else {
-	    list
 	}]
 	
 	# 1. Bubble up order
@@ -207,7 +205,7 @@ snit::widget minhtmltk {
 	# 3. global handler (node = "")
 
 	for-upward-node nspec $startNode {
-	    # In simple case, key == node
+	    # In simple case, nspec = key = node
 	    # In tag-class-list, nspec = [list tag_class node]
 	    set key  [lindex $nspec 0]
 	    set node [lindex $nspec end]
@@ -216,7 +214,7 @@ snit::widget minhtmltk {
 
 	    lappend result $node $cmd
 
-	} {*}$altList ""
+	} {*}$altList [list "" [parent-of-textnode $startNode]]
 	set result
     }
 
