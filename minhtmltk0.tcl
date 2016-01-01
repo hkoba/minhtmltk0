@@ -16,9 +16,7 @@ namespace eval ::minhtmltk {
 
 source [file dirname [info script]]/formstate1.tcl
 
-foreach fn [glob [file dirname [info script]]/helper/*.tcl] {
-    source $fn
-}
+source [file dirname [info script]]/helper.tcl
 
 snit::widget minhtmltk {
 
@@ -125,11 +123,13 @@ snit::widget minhtmltk {
     # HTML Tag handling
     #========================================
 
+    ::minhtmltk::helper errorlogger
+
     set handledTags [dict create parse {} script {} node {}]
     
-    ::minhtmltk::helper::form   handledTags
-    ::minhtmltk::helper::style  handledTags
-    ::minhtmltk::helper::anchor handledTags
+    ::minhtmltk::helper form   handledTags
+    ::minhtmltk::helper style  handledTags
+    ::minhtmltk::helper anchor handledTags
 
     foreach kind [dict keys $handledTags] {
 	option -handle-$kind [dict get $handledTags $kind]

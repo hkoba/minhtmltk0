@@ -11,8 +11,8 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
 	textarea \
 	select
     
-    ::minhtmltk::helper::nodeutil
-    ::minhtmltk::helper::errorlogger
+    ::minhtmltk::helper nodeutil
+    ::minhtmltk::helper errorlogger
 
     method {node path} node {
         if {[set id [$node attr -default "" id]] eq ""} {
