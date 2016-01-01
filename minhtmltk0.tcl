@@ -189,42 +189,17 @@ snit::widget minhtmltk {
     option -generate-tag-class-event yes
     method {node event list-handlers} {startNode event} {
 	set result {}
-    	for {set n $startNode} {$n ne ""} {set n [$n parent]} {
-	    if {![dict exists $stateTriggerDict $n $ourEvDict($event)]} {
+	for-upward-node nspec $startNode {
+	    set key  [lindex $nspec 0]
+	    set node [lindex $nspec end]
+	    if {![dict exists $stateTriggerDict $key $event]} {
 		continue
 	    }
-	    set cmd [dict get $stateTriggerDict $n $ourEvDict($event)]
-	    lappend result $n $cmd
-    	}
-	if {$options(-generate-tag-class-event)} {
-	    set n $startNode
-	    if {[$n tag] eq ""} {
-		set n [$n parent]
-	    }
-	    foreach key [$self node tag-class-list $n] {
-		if {![dict exists $stateTriggerDict $key $ourEvDict($event)]} {
-		    continue
-		}
-		set cmd [dict get $stateTriggerDict $key $ourEvDict($event)]
-		lappend result $n $cmd
-	    }
-	}
-	if {[dict exists $stateTriggerDict "" $ourEvDict($event)]} {
-	    set cmd [dict get $stateTriggerDict "" $ourEvDict($event)]
-	    lappend result "" $cmd
-	}
-	set result
-    }
+	    set cmd [dict get $stateTriggerDict $key $event]
+	    lappend result $node $cmd
 
-    method {node tag-class-list} node {
-	set list ""
-	if {$node ne "" && [$node tag] ne ""} {
-	    foreach cls [$node attr -default "" class] {
-		lappend list [$node tag].$cls
-	    }
-	    lappend list [$node tag]
-	}
-	set list
+	} {*}[tag-class-list-of-node $startNode] ""
+	set result
     }
 
     proc for-upward-node {nvar startNode command args} {
@@ -238,6 +213,27 @@ snit::widget minhtmltk {
     	    rethrow-control {uplevel 1 $command} yes
 	}
     }
+
+    proc tag-class-list-of-node node {
+	set list ""
+	set node [parent-of-textnode $node]
+	if {$node ne "" && [set tag [$node tag]] ne ""} {
+	    foreach cls [$node attr -default "" class] {
+		lappend list [list $tag.$cls $node]
+	    }
+	    lappend list [list $tag $node]
+	}
+	set list
+    }
+
+    proc parent-of-textnode node {
+	if {[$node tag] eq ""} {
+	    $node parent
+	} else {
+	    set node
+	}
+    }
+
     proc rethrow-control {command {no_loop no}} {
 	set rc [catch {uplevel 1 $command} result]
 	if {$no_loop && $rc in {3 4}} {
