@@ -290,9 +290,10 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         $form node add submit $node \
 	    [node-atts-assign $node name {value Submit}]
 
-	# XXX: This -command behavior is experimental.
+	# XXX: This -command behavior is experimental and will be changed!
         ttk::button $path -takefocus 1 -text $value \
-            -command [list $self node trigger $node submit $form $name] {*}$args
+            -command [list $self node event trigger $node submit \
+			  form $form name $name] {*}$args
     }
 
     method {add input checkbox} {path node form args} {

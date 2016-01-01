@@ -182,26 +182,47 @@ snit::widget minhtmltk {
 	foreach {node cmd} [$self node event list-handlers $startNode $event] {
 
 	    # XXX: What kind of API should we have?
-	    apply {{cmd node args} {eval $cmd {*}$args}} $cmd $node {*}$args
+	    apply [list {self win selfns node args} $cmd] \
+		$self $win $selfns $node {*}$args
 	}
     }
-
+    
     option -generate-tag-class-event yes
     method {node event list-handlers} {startNode event} {
 	set result {}
+	set altList [if {$options(-generate-tag-class-event)} {
+	    tag-class-list-of-node $startNode
+	} else {
+	    list
+	}]
+	
+	# 1. Bubble up order
+	# 2. (tag.class / tag) handlers
+	# 3. global handler (node = "")
+
 	for-upward-node nspec $startNode {
+	    # In simple case, key == node
+	    # In tag-class-list, nspec = [list tag_class node]
 	    set key  [lindex $nspec 0]
 	    set node [lindex $nspec end]
-	    if {![dict exists $stateTriggerDict $key $event]} {
-		continue
-	    }
-	    set cmd [dict get $stateTriggerDict $key $event]
+
+	    if {![dict-getvar $stateTriggerDict $key $event cmd]} continue
+
 	    lappend result $node $cmd
 
-	} {*}[tag-class-list-of-node $startNode] ""
+	} {*}$altList ""
 	set result
     }
 
+    proc dict-getvar {dict args} {
+	upvar 1 [lindex $args end] outvar
+	if {![dict exists $dict {*}[lrange $args 0 end-1]]} {
+	    return 0
+	}
+	set outvar [dict get $dict {*}[lrange $args 0 end-1]]
+	return 1
+    }
+    
     proc for-upward-node {nvar startNode command args} {
     	upvar 1 $nvar n
 
