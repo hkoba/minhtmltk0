@@ -292,7 +292,7 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
 
 	# XXX: This -command behavior is experimental.
         ttk::button $path -takefocus 1 -text $value \
-            -command [list $self trigger submit $form $name] {*}$args
+            -command [list $self node trigger $node submit $form $name] {*}$args
     }
 
     method {add input checkbox} {path node form args} {

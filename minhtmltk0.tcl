@@ -54,6 +54,8 @@ snit::widget minhtmltk {
         $self configurelist $args
         
         $self install-html-handlers
+	
+	$self install-mouse-handlers
 
         if {$html ne ""} {
             $self replace_location_html $file $html
@@ -107,19 +109,6 @@ snit::widget minhtmltk {
     }
     
     #========================================
-
-    variable stateTriggerDict -array {}
-    method on {event command} {
-        set vn stateTriggerDict($event)
-        set $vn $command
-    }
-    method trigger {event args} {
-        set vn stateTriggerDict($event)
-        if {![info exists $vn]} return
-        {*}[set $vn] {*}$args
-    }
-
-    #========================================
     # HTML Tag handling
     #========================================
 
@@ -162,7 +151,150 @@ snit::widget minhtmltk {
     }
 
     #========================================
+    # mouse handling, salvaged from ::hv3::hv3::mousemanager
+    #========================================
 
+    set evlist [list submit \
+		    mouseover mousemove mouseout click \
+		    dblclick mousedown mouseup]
+    typevariable ourMouseEventList $evlist
+    typevariable ourEvDict -array [set ls {}; foreach i $evlist {
+	lappend ls $i $i
+    }; set ls]
+
+    variable stateTriggerDict [dict create]
+    # Global event
+    method on {event command} {
+	$self node event on "" $event $command
+    }
+    method trigger {event args} {
+	$self node event trigger "" $event {*}$args
+    }
+
+    # Node event. 
+    method {node event on} {node event command} {
+	dict set stateTriggerDict $node $ourEvDict($event) $command
+	# puts stateTriggerDict=$stateTriggerDict
+    }
+
+    method {node event trigger} {startNode event args} {
+	
+	foreach {node cmd} [$self node event list-handlers $startNode $event] {
+
+	    # XXX: What kind of API should we have?
+	    apply {{cmd node args} {eval $cmd {*}$args}} $cmd $node {*}$args
+	}
+    }
+
+    option -generate-tag-class-event yes
+    method {node event list-handlers} {startNode event} {
+	set result {}
+    	for {set n $startNode} {$n ne ""} {set n [$n parent]} {
+	    if {![dict exists $stateTriggerDict $n $ourEvDict($event)]} {
+		continue
+	    }
+	    set cmd [dict get $stateTriggerDict $n $ourEvDict($event)]
+	    lappend result $n $cmd
+    	}
+	if {$options(-generate-tag-class-event)} {
+	    set n $startNode
+	    if {[$n tag] eq ""} {
+		set n [$n parent]
+	    }
+	    foreach key [$self node tag-class-list $n] {
+		if {![dict exists $stateTriggerDict $key $ourEvDict($event)]} {
+		    continue
+		}
+		set cmd [dict get $stateTriggerDict $key $ourEvDict($event)]
+		lappend result $n $cmd
+	    }
+	}
+	if {[dict exists $stateTriggerDict "" $ourEvDict($event)]} {
+	    set cmd [dict get $stateTriggerDict "" $ourEvDict($event)]
+	    lappend result "" $cmd
+	}
+	set result
+    }
+
+    method {node tag-class-list} node {
+	set list ""
+	if {$node ne "" && [$node tag] ne ""} {
+	    foreach cls [$node attr -default "" class] {
+		lappend list [$node tag].$cls
+	    }
+	    lappend list [$node tag]
+	}
+	set list
+    }
+
+    proc for-upward-node {nvar startNode command args} {
+    	upvar 1 $nvar n
+
+	set nodeList ""
+    	for {set n $startNode} {$n ne ""} {set n [$n parent]} {
+	    lappend nodeList $n
+    	}
+	foreach n [list {*}$nodeList {*}$args] {
+    	    rethrow-control {uplevel 1 $command} yes
+	}
+    }
+    proc rethrow-control {command {no_loop no}} {
+	set rc [catch {uplevel 1 $command} result]
+	if {$no_loop && $rc in {3 4}} {
+	    return $result
+	} else {
+	    return -code $rc $result
+    	}
+    }
+
+    method install-mouse-handlers {} {
+	bindtags $myHtml [list {*}[bindtags $myHtml] $win]
+
+	# puts win-bindtags=[bindtags $win]
+	# puts html-bindtags=[bindtags $myHtml]
+	
+	bind $win <ButtonPress-1>   +[mymethod Press   %W %x %y]
+	bind $win <Motion>          +[mymethod Motion  %W %x %y]
+	bind $win <ButtonRelease-1> +[mymethod Release %W %x %y]
+	
+	$self node event on label click \
+	    {puts stderr "clicked! node=$node,args=$args"}
+    }
+    
+    method Press   {w x y} {
+	adjust-coords-to $myHtml $w x y
+	set nodelist [$myHtml node $x $y]
+	puts "Press $w $x $y; nodelist=$nodelist"
+    }
+    method Motion  {w x y} {
+	#puts "Motion $w $x $y"
+    }
+    method Release {w x y} {
+	adjust-coords-to $myHtml $w x y
+
+	set nodelist [$myHtml node $x $y]
+	set evlist {}
+	foreach node $nodelist {
+	    lappend evlist click $node
+	}
+	
+	$self event generatelist $evlist
+    }
+    method {event generatelist} evlist {
+	foreach {event node} $evlist {
+	    $self node event trigger $node $event
+	}
+    }
+
+    proc adjust-coords-to {to W xVar yVar} {
+	upvar 1 $xVar x
+	upvar 1 $yVar y
+	while {$W ne "" && $W ne $to} {
+	    incr x [winfo x $W]
+	    incr y [winfo y $W]
+	    set W [winfo parent $W]
+	}
+    }
 }
 
 if {![info level] && [info exists ::argv0]
