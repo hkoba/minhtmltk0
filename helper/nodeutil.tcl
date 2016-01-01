@@ -37,7 +37,7 @@ snit::macro ::minhtmltk::helper::nodeutil {} {
 	    lappend nodeList $n
     	}
 	foreach n [list {*}$nodeList {*}$args] {
-    	    rethrow-control {uplevel 1 $command} yes
+    	    rethrow-control {uplevel 1 $command}
 	}
     }
 
