@@ -214,15 +214,6 @@ snit::widget minhtmltk {
 	set result
     }
 
-    proc dict-getvar {dict args} {
-	upvar 1 [lindex $args end] outvar
-	if {![dict exists $dict {*}[lrange $args 0 end-1]]} {
-	    return 0
-	}
-	set outvar [dict get $dict {*}[lrange $args 0 end-1]]
-	return 1
-    }
-    
     proc for-upward-node {nvar startNode command args} {
     	upvar 1 $nvar n
 
@@ -253,15 +244,6 @@ snit::widget minhtmltk {
 	} else {
 	    set node
 	}
-    }
-
-    proc rethrow-control {command {no_loop no}} {
-	set rc [catch {uplevel 1 $command} result]
-	if {$no_loop && $rc in {3 4}} {
-	    return $result
-	} else {
-	    return -code $rc $result
-    	}
     }
 
     method install-mouse-handlers {} {
