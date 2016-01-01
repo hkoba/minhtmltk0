@@ -53,6 +53,9 @@ snit::widget minhtmltk {
         
         $self configurelist $args
         
+	bind $win <<DocumentReady>> [list $self node event trigger \
+					 [$myHtml node] ready]
+
         $self install-html-handlers
 	
 	$self install-mouse-handlers
@@ -70,6 +73,9 @@ snit::widget minhtmltk {
     method parse args {
         append stateHtmlSource [lindex $args end]
         $myHtml parse {*}$args
+	if {[lindex $args 0] eq "-final"} {
+	    after idle [list event generate $win <<DocumentReady>>]
+	}
     }
 
     method {state source} {} {
@@ -214,36 +220,16 @@ snit::widget minhtmltk {
 	set result
     }
 
-    proc for-upward-node {nvar startNode command args} {
-    	upvar 1 $nvar n
-
-	set nodeList ""
-    	for {set n $startNode} {$n ne ""} {set n [$n parent]} {
-	    lappend nodeList $n
-    	}
-	foreach n [list {*}$nodeList {*}$args] {
-    	    rethrow-control {uplevel 1 $command} yes
-	}
-    }
-
-    proc tag-class-list-of-node node {
-	set list ""
-	set node [parent-of-textnode $node]
-	if {$node ne "" && [set tag [$node tag]] ne ""} {
-	    foreach cls [$node attr -default "" class] {
-		lappend list [list $tag.$cls $node]
-	    }
-	    lappend list [list $tag $node]
-	}
-	set list
-    }
-
-    proc parent-of-textnode node {
-	if {[$node tag] eq ""} {
-	    $node parent
+    method See node_or_selector {
+	set node [if {[regexp ^::tkhtml::node $node_or_selector]} {
+	    set node_or_selector
 	} else {
-	    set node
-	}
+	    lindex [$self search $node_or_selector] 0
+	}]
+	# puts Seeing-$node_or_selector->$node
+	if {$node eq ""} return
+	
+	$self yview $node
     }
 
     method install-mouse-handlers {} {
@@ -256,8 +242,36 @@ snit::widget minhtmltk {
 	bind $win <Motion>          +[mymethod Motion  %W %x %y]
 	bind $win <ButtonRelease-1> +[mymethod Release %W %x %y]
 	
-	$self node event on label click \
-	    {puts stderr "clicked! node=$node,args=$args"}
+	$self node event on a click {
+	    
+	    if {[set href [$node attr -default "" href]] eq ""} return
+	    
+	    if {[regexp ^\# $href]} {
+		$self See $href
+	    } else {
+		puts stderr "Not yet implemented: href=$href"
+	    }
+	}
+
+	$self node event on label click {
+
+	    set inputs [if {[set id [$node attr -default "" for]] ne ""} {
+		# <label for="id">
+
+		$self search #$id
+
+	    } else {
+		# <label> <input type=checkbox>
+
+		$self search {
+		    input[type=checkbox], input[type=radio]
+		} -root $node
+	    }]
+
+	    foreach n $inputs {
+		[$n replace] invoke
+	    }
+	}
     }
     
     method Press   {w x y} {

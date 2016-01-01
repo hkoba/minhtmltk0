@@ -29,4 +29,36 @@ snit::macro ::minhtmltk::helper::nodeutil {} {
         set _atts
     }
 
+    proc for-upward-node {nvar startNode command args} {
+    	upvar 1 $nvar n
+
+	set nodeList ""
+    	for {set n $startNode} {$n ne ""} {set n [$n parent]} {
+	    lappend nodeList $n
+    	}
+	foreach n [list {*}$nodeList {*}$args] {
+    	    rethrow-control {uplevel 1 $command} yes
+	}
+    }
+
+    proc tag-class-list-of-node node {
+	set list ""
+	set node [parent-of-textnode $node]
+	if {$node ne "" && [set tag [$node tag]] ne ""} {
+	    foreach cls [$node attr -default "" class] {
+		lappend list [list $tag.$cls $node]
+	    }
+	    lappend list [list $tag $node]
+	}
+	set list
+    }
+
+    proc parent-of-textnode node {
+	if {[$node tag] eq ""} {
+	    $node parent
+	} else {
+	    set node
+	}
+    }
+
 }
