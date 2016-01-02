@@ -97,13 +97,17 @@ proc center bbox {
     list [avg $x1 $x2] [avg $y1 $y2]
 }
 
-proc invokeClick node {
+proc invokeHandlerFor {meth node} {
     # puts stderr invoking=$node,tag=[$node tag]
     lassign [center [.ht bbox $node]] cx cy
     minhtmltk::utils::adjust-coords-from [.ht html] .ht cx cy
     
-    .ht Press   .ht $cx $cy
-    .ht Release .ht $cx $cy
+    .ht $meth .ht $cx $cy
+}
+
+proc invokeClick node {
+    invokeHandlerFor Press   $node
+    invokeHandlerFor Release $node
 }
 
 incr D
