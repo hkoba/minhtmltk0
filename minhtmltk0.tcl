@@ -119,6 +119,9 @@ snit::widget minhtmltk {
                 set $stVar ""
             }
         }
+
+	# Reinstall default tag/event handlers
+	$self interactive
     }
     
     method read_file {fn args} {
@@ -208,6 +211,9 @@ snit::widget minhtmltk {
     method {node event trigger} {startNode event args} {
 
 	set handlers [$self node event list-handlers $startNode $event]
+	# puts startNode=$startNode,[if {$startNode ne ""} {
+	#     list tag=[$startNode tag]
+	# }],event=$event,handlers=$handlers
 
 	foreach {node cmd} $handlers {
 
@@ -227,6 +233,9 @@ snit::widget minhtmltk {
     option -generate-tag-class-event yes
     method {node event list-handlers} {startNode event} {
 	set result {}
+	if {$startNode ne ""} {
+	    set startNode [parent-of-textnode $startNode]
+	}
 	set altList [if {$startNode ne ""
 			 && $options(-generate-tag-class-event)} {
 	    tag-class-list-of-node $startNode
@@ -242,6 +251,7 @@ snit::widget minhtmltk {
 	    set key  [lindex $nspec 0]
 	    set node [lindex $nspec end]
 
+	    # puts stderr looking=$key-$event,in=$stateTriggerDict
 	    if {![dict-getvar $stateTriggerDict $key $event cmd]} continue
 
 	    lappend result $node $cmd
@@ -283,6 +293,7 @@ snit::widget minhtmltk {
 	}
 
 	$self node event on label click {
+	    # puts stderr label-clicked:$node,tag=[$node tag]
 
 	    set inputs [if {[set id [$node attr -default "" for]] ne ""} {
 		# <label for="id">
@@ -323,6 +334,7 @@ snit::widget minhtmltk {
 	adjust-coords-to $myHtml $w x y
 
 	set nodelist [$myHtml node $x $y]
+	# puts stderr click-nodelist=$nodelist
 	set evlist {}
 	foreach node $nodelist {
 	    lappend evlist click $node

@@ -97,6 +97,15 @@ proc center bbox {
     list [avg $x1 $x2] [avg $y1 $y2]
 }
 
+proc invokeClick node {
+    # puts stderr invoking=$node,tag=[$node tag]
+    lassign [center [.ht bbox $node]] cx cy
+    minhtmltk::utils::adjust-coords-from [.ht html] .ht cx cy
+    
+    .ht Press   .ht $cx $cy
+    .ht Release .ht $cx $cy
+}
+
 incr D
 .ht Reset
 test $P-$D-click-[incr I] "on h2 click" -body {
@@ -112,18 +121,44 @@ test $P-$D-click-[incr I] "on h2 click" -body {
 	set ::out "Clicked!"
     }
     
-    update idletask
+    #update idletask; # Is not needed
 
-    set h2node [.ht search h2]
-    #puts stderr h2node=$h2node
-    lassign [center [.ht bbox $h2node]] cx cy
-    minhtmltk::utils::adjust-coords-from [.ht html] .ht cx cy
+    invokeClick [.ht search h2]
 
-    .ht Press   .ht $cx $cy
-    .ht Release .ht $cx $cy
-    
     set ::out
 
 } -result Clicked!
+
+incr D
+.ht Reset
+test $P-$D-click-[incr I] "label click => checkbox/radio" -body {
+    
+    .ht parse -final {
+	<form>
+	<label id="lq1"><input type="radio" name="q1" value="1">radio!</label>
+	<label id="lq2"><input type="checkbox" name="q2" value="2">checkbox!</label>
+	</form>
+    }
+    
+    # update idletask
+
+    set form [.ht form get 0]
+
+    set res {}
+    lappend res [list before [$form get_all]]
+    
+    # puts stderr handlers=[.ht node event dump-handlers]
+    foreach val {1 2} {
+	set name q$val
+	set id l$name
+	set label [.ht search #$id]
+	# puts stderr kids=[$label children]
+	invokeClick [lindex [$label children] end]
+    }
+
+    lappend res [list after [$form get_all]]
+
+} -result [list [list before []] [list after {q1 1 q2 2}]]
+
 
 catch {destroy .}
