@@ -8,6 +8,11 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     # mouse event handling, salvaged and extended from ::hv3::hv3::mousemanager
     #========================================
 
+    # Note: this event registration system is basically isolated from
+    # Tk's [bind widget <<Event>>] system.
+    # You can't add/invoke input[type=checkbox] via [~ node event on/trigger]
+    # (at least currently).
+
     set evlist [list \
 		    ready \
 		    submit \
@@ -29,6 +34,7 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 
     # Node event. 
     method {node event on} {node event command} {
+	# XXX: Append!
 	if {[dict exists $stateTriggerDict $node $ourEvDict($event)]} {
 	    $self error add "Replacing handler for $event with $command"
 	}
@@ -43,14 +49,41 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	#     list tag=[$startNode tag]
 	# }],event=$event,handlers=$handlers
 
-	foreach {node cmd} $handlers {
-
-	    # XXX: What kind of API should we have?
-	    apply [list {self win selfns node this args} $cmd] \
-		$self $win $selfns $node $node {*}$args
-	}
+	$self node event handlelist $handlers
     }
     
+    option -event-in-apply yes
+    method {node event handlelist} handlers {
+	if {$options(-event-in-apply)} {
+	    # Safer, but need to use [return -code break] instead of [break]
+	    foreach spec $handlers {
+		set args [lassign $spec event node cmd]
+		$self node event apply $event $node $cmd {*}$args
+	    }
+	} else {
+	    # Can be fragile.
+	    foreach spec $handlers {
+		set args [lassign $spec event node cmd]
+		set this $node
+		eval $cmd
+	    }
+	}
+    }
+
+    method {node event apply} {event node cmd args} {
+	# XXX: What kind of API should we have?
+	apply [list {self win selfns node this args} $cmd] \
+	    $self $win $selfns $node $node {*}$args
+    }
+
+    method {node event generatelist} evlist {
+	set handlers {}
+	foreach {event node} $evlist {
+	    lappend handlers {*}[$self node event list-handlers $node $event]
+	}
+	$self node event handlelist $handlers
+    }
+
     method {node event dump-handlers} {} {
 	set stateTriggerDict
     }
@@ -82,7 +115,7 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	    # puts stderr looking=$key-$event,in=$stateTriggerDict
 	    if {![dict-getvar $stateTriggerDict $key $event cmd]} continue
 
-	    lappend result $node $cmd
+	    lappend result [list $event $node $cmd]
 
 	} {*}$altList [list "" [$myHtml node]]
 
@@ -156,11 +189,6 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	    lappend evlist click $node
 	}
 	
-	$self event generatelist $evlist
-    }
-    method {event generatelist} evlist {
-	foreach {event node} $evlist {
-	    $self node event trigger $node $event
-	}
+	$self node event generatelist $evlist
     }
 }
