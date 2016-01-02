@@ -9,11 +9,11 @@ snit::macro ::minhtmltk::helper::nodeutil {} {
     #========================================
 
     method innerTextPre node {
-	set contents {}
-	foreach kid [$node children] {
-	    append contents [$kid text -pre]
-	}
-	set contents
+        set contents {}
+        foreach kid [$node children] {
+            append contents [$kid text -pre]
+        }
+        set contents
     }
 
     # extract attr (like [lassign]) returns [dict]
@@ -30,35 +30,35 @@ snit::macro ::minhtmltk::helper::nodeutil {} {
     }
 
     proc for-upward-node {nvar startNode command args} {
-    	upvar 1 $nvar n
+        upvar 1 $nvar n
 
-	set nodeList ""
-    	for {set n $startNode} {$n ne ""} {set n [$n parent]} {
-	    lappend nodeList $n
-    	}
-	foreach n [list {*}$nodeList {*}$args] {
-    	    rethrow-control {uplevel 1 $command}
-	}
+        set nodeList ""
+        for {set n $startNode} {$n ne ""} {set n [$n parent]} {
+            lappend nodeList $n
+        }
+        foreach n [list {*}$nodeList {*}$args] {
+            rethrow-control {uplevel 1 $command}
+        }
     }
 
     proc tag-class-list-of-node node {
-	set list ""
-	set node [parent-of-textnode $node]
-	if {$node ne "" && [set tag [$node tag]] ne ""} {
-	    foreach cls [$node attr -default "" class] {
-		lappend list [list $tag.$cls $node]
-	    }
-	    lappend list [list $tag $node]
-	}
-	set list
+        set list ""
+        set node [parent-of-textnode $node]
+        if {$node ne "" && [set tag [$node tag]] ne ""} {
+            foreach cls [$node attr -default "" class] {
+                lappend list [list $tag.$cls $node]
+            }
+            lappend list [list $tag $node]
+        }
+        set list
     }
 
     proc parent-of-textnode node {
-	if {[$node tag] eq ""} {
-	    $node parent
-	} else {
-	    set node
-	}
+        if {[$node tag] eq ""} {
+            $node parent
+        } else {
+            set node
+        }
     }
 
 }

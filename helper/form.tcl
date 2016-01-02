@@ -7,9 +7,9 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
     upvar 1 $handledTagDictVar handledTagDict
     dict lappend handledTagDict parse form
     dict lappend handledTagDict node \
-	[list input by-input-type]\
-	textarea \
-	select
+        [list input by-input-type]\
+        textarea \
+        select
     
     ::minhtmltk::helper nodeutil
     ::minhtmltk::helper errorlogger
@@ -33,24 +33,24 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         uplevel 1 $command
         if {[info exists path] && $path ne ""} {
             $node replace $path -deletecmd [list destroy $path] \
-		-configurecmd [list $self node configure $path]
+                -configurecmd [list $self node configure $path]
         }
     }
 
     method {node configure} {path values} {
-	if {[set font [from values font ""]] eq ""} {
-	    if {![catch {$path cget -font} font]} {
-		return 0
-	    }
-	}
-	$self font-baseline $path $font
+        if {[set font [from values font ""]] eq ""} {
+            if {![catch {$path cget -font} font]} {
+                return 0
+            }
+        }
+        $self font-baseline $path $font
     }
 
     # Stolen from hv3_form.tcl ::hv3::forms::configurecmd
     method font-baseline {path font} {
-	set descent [font metrics $font -descent]
-	set ascent  [font metrics $font -ascent]
-	expr {([winfo reqheight $path] + $descent - $ascent) / 2}
+        set descent [font metrics $font -descent]
+        set ascent  [font metrics $font -ascent]
+        expr {([winfo reqheight $path] + $descent - $ascent) / 2}
     }
 
     #========================================
@@ -130,23 +130,23 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         $self with form {
             $self with path-of $node {
                 widget::scrolledwindow $path
-		set t $path.text
-		#set t $path
+                set t $path.text
+                #set t $path
                 text $t -width [$node attr -default 60 cols]\
-		    -height [$node attr -default 10 rows] \
-		    -undo yes
-		$path setwidget $t
-		$path configure -width 600 -height 100
+                    -height [$node attr -default 10 rows] \
+                    -undo yes
+                $path setwidget $t
+                $path configure -width 600 -height 100
 
                 set var [$form node add text $node \
-			     [node-atts-assign $node name value] \
-			     getter [list {{t} {
-				 $t get 1.0 end-1c
-			     }} $t] \
-			     setter [list {{t value} {
-				 $t delete 1.0 end
-				 $t insert end $value
-			     }} $t]]
+                             [node-atts-assign $node name value] \
+                             getter [list {{t} {
+                                 $t get 1.0 end-1c
+                             }} $t] \
+                             setter [list {{t value} {
+                                 $t delete 1.0 end
+                                 $t insert end $value
+                             }} $t]]
                 set $var [$self innerTextPre $node]
             }
         }
@@ -155,95 +155,95 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
     method {add node select} node {
         $self with form {
             $self with path-of $node {
-		if {[$node attr -default "no" multi] ne "no"} {
-		    $self add select-multi $path $node $form
-		} else {
-		    $self add select-single $path $node $form
-		}
-	    }
-	}
+                if {[$node attr -default "no" multi] ne "no"} {
+                    $self add select-multi $path $node $form
+                } else {
+                    $self add select-single $path $node $form
+                }
+            }
+        }
     }
     
     method {add select-single} {path selNode form args} {
-	set name [$selNode attr -default "" name]
-	lassign [$self form collect options $selNode] \
-	    nodeDefs labelList selected
+        set name [$selNode attr -default "" name]
+        lassign [$self form collect options $selNode] \
+            nodeDefs labelList selected
 
-	foreach spec $nodeDefs {
-	    lassign $spec node value
-	    $form node add single $node \
-		[dict create name $name value $value] \
-		getter [list {{path form name} {
-		    lindex [$form choicelist $name] \
-			[$path current]
-		}} $path $form $name] \
-		setter [list {{path form name value} {
-		    set pos [lsearch -exact [$form choicelist $name] $value]
-		    if {$pos >= 0} {
-			$path current $pos
-		    }
-		}} $path $form $name]
-	}
-	ttk::combobox $path -state readonly -values $labelList
-	if {$selected ne ""} {
-	    $path current $selected
-	} else {
-	    $path current 0
-	}
+        foreach spec $nodeDefs {
+            lassign $spec node value
+            $form node add single $node \
+                [dict create name $name value $value] \
+                getter [list {{path form name} {
+                    lindex [$form choicelist $name] \
+                        [$path current]
+                }} $path $form $name] \
+                setter [list {{path form name value} {
+                    set pos [lsearch -exact [$form choicelist $name] $value]
+                    if {$pos >= 0} {
+                        $path current $pos
+                    }
+                }} $path $form $name]
+        }
+        ttk::combobox $path -state readonly -values $labelList
+        if {$selected ne ""} {
+            $path current $selected
+        } else {
+            $path current 0
+        }
     }
 
     method {add select-multi} {path selNode form args} {
-	set name [$selNode attr -default "" name]
-	lassign [$self form collect options $selNode] \
-	    nodeDefs labelList selected
+        set name [$selNode attr -default "" name]
+        lassign [$self form collect options $selNode] \
+            nodeDefs labelList selected
 
-	foreach spec $nodeDefs {
-	    lassign $spec node value
-	    $form node add multi $node \
-		[dict create name $name value $value] \
-		array-getter [list {{path form name ix} {
-		    set pos [lsearch -exact [$form choicelist $name] $ix]
-		    if {$pos < 0} return
-		    $path selection includes $pos
-		}} $path $form $name] \
-		array-setter [list {{path form name ix value} {
-		    set pos [lsearch -exact [$form choicelist $name] $ix]
-		    if {$pos < 0} return
-		    if {$value} {
-			$path selection set $pos
-		    } else {
-			$path selection clear $pos
-		    }
-		}} $path $form $name]
-	}
-	listbox $path -selectmode extended
-	$path insert end {*}$labelList
-	$path selection clear 0 end
-	foreach sel $selected {
-	    $path selection set $sel
-	}
+        foreach spec $nodeDefs {
+            lassign $spec node value
+            $form node add multi $node \
+                [dict create name $name value $value] \
+                array-getter [list {{path form name ix} {
+                    set pos [lsearch -exact [$form choicelist $name] $ix]
+                    if {$pos < 0} return
+                    $path selection includes $pos
+                }} $path $form $name] \
+                array-setter [list {{path form name ix value} {
+                    set pos [lsearch -exact [$form choicelist $name] $ix]
+                    if {$pos < 0} return
+                    if {$value} {
+                        $path selection set $pos
+                    } else {
+                        $path selection clear $pos
+                    }
+                }} $path $form $name]
+        }
+        listbox $path -selectmode extended
+        $path insert end {*}$labelList
+        $path selection clear 0 end
+        foreach sel $selected {
+            $path selection set $sel
+        }
     }
 
     method {form collect options} {selNode} {
-	set name [$selNode attr -default "" name]
-	set nodeDefs {}
-	set labelList {}
-	set selected {}
-	set i -1
-	foreach node [$self search option -root $selNode] {
-	    incr i
-	    lappend labelList [set label [[lindex [$node children] 0] text]]
-	    set value [if {"value" in [$node attr]} {
-		$node attr value
-	    } else {
-		set label
-	    }]
-	    lappend nodeDefs [list $node $value]
-	    if {[$node attr -default no selected] ne "no"} {
-		lappend selected $i
-	    }
-	}
-	list $nodeDefs $labelList $selected
+        set name [$selNode attr -default "" name]
+        set nodeDefs {}
+        set labelList {}
+        set selected {}
+        set i -1
+        foreach node [$self search option -root $selNode] {
+            incr i
+            lappend labelList [set label [[lindex [$node children] 0] text]]
+            set value [if {"value" in [$node attr]} {
+                $node attr value
+            } else {
+                set label
+            }]
+            lappend nodeDefs [list $node $value]
+            if {[$node attr -default no selected] ne "no"} {
+                lappend selected $i
+            }
+        }
+        list $nodeDefs $labelList $selected
     }
 
     #----------------------------------------
@@ -266,15 +266,15 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
 
     method {add input text} {path node form args} {
         set var [$form node add text $node \
-		     [node-atts-assign $node name value]]
+                     [node-atts-assign $node name value]]
         ::ttk::entry $path \
             -textvariable $var \
             -width [$node attr -default 20 size] {*}$args
-	if {[set script [$node attr -default "" onchange]] ne ""} {
-	    bind $path <Return> \
-		[list apply [list {win node path form} $script]\
-		     $win $node $path $form]
-	}
+        if {[set script [$node attr -default "" onchange]] ne ""} {
+            bind $path <Return> \
+                [list apply [list {win node path form} $script]\
+                     $win $node $path $form]
+        }
     }
 
     method {add input password} {path node form args} {
@@ -288,24 +288,24 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         
     method {add input submit} {path node form args} {
         $form node add submit $node \
-	    [node-atts-assign $node name {value Submit}]
+            [node-atts-assign $node name {value Submit}]
 
-	# XXX: This -command behavior is experimental and will be changed!
+        # XXX: This -command behavior is experimental and will be changed!
         ttk::button $path -takefocus 1 -text $value \
             -command [list $self node event trigger $node submit \
-			  form $form name $name] {*}$args
+                          form $form name $name] {*}$args
     }
 
     method {add input checkbox} {path node form args} {
         set var [$form node add multi $node \
-		     [node-atts-assign $node name {value on}]]
-	set $var [expr {[$node attr -default "no" checked] ne "no"}]
+                     [node-atts-assign $node name {value on}]]
+        set $var [expr {[$node attr -default "no" checked] ne "no"}]
         ttk::checkbutton $path -variable $var
     }
 
     method {add input radio} {path node form args} {
         set var [$form node add single $node \
-		     [node-atts-assign $node name {value on}]]
+                     [node-atts-assign $node name {value on}]]
         if {[$node attr -default "no" checked] ne "no"} {
             set $var $value
         }
@@ -314,7 +314,7 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
 
     method {add input hidden} {path node form args} {
         $form node add text $node \
-	    [node-atts-assign $node name value]
+            [node-atts-assign $node name value]
     }
 }
 

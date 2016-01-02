@@ -37,7 +37,7 @@ snit::widget minhtmltk {
                 -background white -activebackground white
         }
 
-	bind $ourClass <<DocumentReady>> {%W trigger ready}
+        bind $ourClass <<DocumentReady>> {%W trigger ready}
     }
 
     #========================================
@@ -59,8 +59,8 @@ snit::widget minhtmltk {
         $self configurelist $args
         
         $self install-html-handlers
-	
-	$self install-mouse-handlers
+        
+        $self install-mouse-handlers
 
         if {$html ne ""} {
             $self replace_location_html $file $html
@@ -70,11 +70,11 @@ snit::widget minhtmltk {
     }
     
     method html args {
-	if {$args eq ""} {
-	    set myHtml
-	} else {
-	    $myHtml {*}$args
-	}
+        if {$args eq ""} {
+            set myHtml
+        } else {
+            $myHtml {*}$args
+        }
     }
 
     #----------------------------------------
@@ -85,15 +85,15 @@ snit::widget minhtmltk {
     method parse args {
         append stateHtmlSource [lindex $args end]
         $myHtml parse {*}$args
-	if {[lindex $args 0] eq "-final"} {
-	    set cmd [list event generate $win <<DocumentReady>>]
-	    # This cmd will call [$self node event trigger "" ready]
-	    if {$options(-emit-ready-immediately)} {
-		{*}$cmd
-	    } else {
-		after idle $cmd
-	    }
-	}
+        if {[lindex $args 0] eq "-final"} {
+            set cmd [list event generate $win <<DocumentReady>>]
+            # This cmd will call [$self node event trigger "" ready]
+            if {$options(-emit-ready-immediately)} {
+                {*}$cmd
+            } else {
+                after idle $cmd
+            }
+        }
     }
 
     method {state source} {} {
@@ -121,8 +121,8 @@ snit::widget minhtmltk {
             }
         }
 
-	# Reinstall default tag/event handlers
-	$self interactive
+        # Reinstall default tag/event handlers
+        $self interactive
     }
     
     method read_file {fn args} {
@@ -148,7 +148,7 @@ snit::widget minhtmltk {
     ::minhtmltk::helper anchor handledTags
 
     foreach kind [dict keys $handledTags] {
-	option -handle-$kind [dict get $handledTags $kind]
+        option -handle-$kind [dict get $handledTags $kind]
     }
 
     # To be handled
@@ -163,12 +163,12 @@ snit::widget minhtmltk {
         
         foreach kind {parse script node} {
             foreach spec $options(-handle-$kind) {
-		lassign $spec tag handler
-		if {$handler ne ""} {
-		    set meth [list add $handler]
-		} else {
-		    set meth [list add $kind $tag]
-		}
+                lassign $spec tag handler
+                if {$handler ne ""} {
+                    set meth [list add $handler]
+                } else {
+                    set meth [list add $kind $tag]
+                }
                 if {![llength [$self info methods $meth]]} {
                     error "Can't find tag handler for $tag"
                 }
@@ -188,15 +188,15 @@ snit::widget minhtmltk {
     #========================================
 
     method See node_or_selector {
-	set node [if {[regexp ^::tkhtml::node $node_or_selector]} {
-	    set node_or_selector
-	} else {
-	    lindex [$self search $node_or_selector] 0
-	}]
-	# puts Seeing-$node_or_selector->$node
-	if {$node eq ""} return
-	
-	$self yview $node
+        set node [if {[regexp ^::tkhtml::node $node_or_selector]} {
+            set node_or_selector
+        } else {
+            lindex [$self search $node_or_selector] 0
+        }]
+        # puts Seeing-$node_or_selector->$node
+        if {$node eq ""} return
+        
+        $self yview $node
     }
 }
 

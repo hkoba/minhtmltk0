@@ -9,7 +9,7 @@ snit::macro ::minhtmltk::helper::anchor {handledTagDictVar} {
     
     # <a>
     method {add node a} node {
-	if {[$node attr -default "" href] eq ""} return
-	$node dynamic set link
+        if {[$node attr -default "" href] eq ""} return
+        $node dynamic set link
     }
 }

@@ -16,7 +16,7 @@ namespace eval ::minhtmltk::helper {}
 snit::macro ::minhtmltk::helper::start {} {
     upvar 1 __helpers_installed installed
     if {[info exists installed]} {
-	unset installed
+        unset installed
     }
     array set installed {}
 }
@@ -24,7 +24,7 @@ snit::macro ::minhtmltk::helper::start {} {
 snit::macro ::minhtmltk::helper {helper args} {
     upvar 1 __helpers_installed installed
     if {![info exists installed]} {
-	array set installed {}
+        array set installed {}
     }
     set vn installed($helper)
     if {[info exists $vn]} continue
