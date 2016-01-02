@@ -40,7 +40,7 @@ proc iota1 {n} {
 #========================================
 
 test $P-create "" -body {
-    $type .ht -debug no
+    $type .ht -debug yes
 } -result .ht
 
 #========================================
@@ -147,11 +147,29 @@ test $P-$D-click-[incr I] "on h2 click" -body {
 #========================================
 
 incr D
+test $P-$D-multiple-listeners-[incr I] "Multiple event lisnters for same event" -body {
+    
+    set ::out ""
+    .ht node event clear h2 click
+    .ht node event on    h2 click { lappend ::out foo }
+    .ht node event on    h2 click { lappend ::out bar }
+    
+    #update idletask; # Is not needed
+
+    invokeClick [.ht search h2]
+
+    set ::out
+
+} -result {foo bar}
+
+
+incr D
 test $P-$D-parameters-[incr I] "Visible parameters in event handler" -body {
     
     set ::out ""
+    .ht node event clear h2 click
     .ht node event on h2 click {
-	set ::out [lsort [info vars *]]
+	lappend ::out {*}[lsort [info vars *]]
     }
     
     #update idletask; # Is not needed

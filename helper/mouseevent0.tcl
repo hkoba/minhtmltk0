@@ -13,6 +13,9 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     # You can't add/invoke input[type=checkbox] via [~ node event on/trigger]
     # (at least currently).
 
+    #
+    # Valid event names should be registered below:
+    #
     set evlist [list \
 		    ready \
 		    submit \
@@ -23,8 +26,18 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	lappend ls $i $i
     }; set ls]
 
+    #
+    # This holds all node->event->{handler list}
+    #
     variable stateTriggerDict [dict create]
-    # Global event
+
+    method {node event dump-handlers} {} {
+	set stateTriggerDict
+    }
+
+    #
+    # Global event. This can be registered before parse.
+    #
     method on {event command} {
 	$self node event on "" $event $command
     }
@@ -32,14 +45,23 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	$self node event trigger "" $event {*}$args
     }
 
-    # Node event. 
+    #
+    # Node event.
+    #
     method {node event on} {node event command} {
-	# XXX: Append!
-	if {[dict exists $stateTriggerDict $node $ourEvDict($event)]} {
-	    $self error add "Replacing handler for $event with $command"
+	if {![dict exists $stateTriggerDict $node]} {
+	    dict set stateTriggerDict $node \
+		[dict create $ourEvDict($event) [list $command]]
+	} else {
+	    dict with stateTriggerDict $node {
+		lappend $ourEvDict($event) $command
+	    }
 	}
-	dict set stateTriggerDict $node $ourEvDict($event) $command
 	# puts stateTriggerDict=$stateTriggerDict
+    }
+
+    method {node event clear} {node event} {
+	dict set stateTriggerDict $node $event {}	
     }
 
     method {node event trigger} {startNode event args} {
@@ -52,6 +74,9 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	$self node event handlelist $handlers
     }
     
+    #
+    # This single loop runs all matched handlers at once.
+    #
     option -event-in-apply yes
     method {node event handlelist} handlers {
 	if {$options(-event-in-apply)} {
@@ -84,10 +109,6 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	$self node event handlelist $handlers
     }
 
-    method {node event dump-handlers} {} {
-	set stateTriggerDict
-    }
-
     #
     # This defines event triggering order.
     #
@@ -112,10 +133,11 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	    set key  [lindex $nspec 0]
 	    set node [lindex $nspec end]
 
-	    # puts stderr looking=$key-$event,in=$stateTriggerDict
-	    if {![dict-getvar $stateTriggerDict $key $event cmd]} continue
+	    if {![dict-getvar $stateTriggerDict $key $event cmdlist]} continue
 
-	    lappend result [list $event $node $cmd]
+	    foreach cmd $cmdlist {
+		lappend result [list $event $node $cmd]
+	    }
 
 	} {*}$altList [list "" [$myHtml node]]
 
@@ -130,39 +152,45 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	bind $win <Motion>          +[mymethod Motion  %W %x %y]
 	bind $win <ButtonRelease-1> +[mymethod Release %W %x %y]
 	
-	$self node event on a click {
-	    
-	    if {[set href [$node attr -default "" href]] eq ""} return
-	    
-	    if {[regexp ^\# $href]} {
-		$self See $href
-	    } else {
-		puts stderr "Not yet implemented: href=$href"
-	    }
-	}
-
-	$self node event on label click {
-	    # puts stderr label-clicked:$node,tag=[$node tag]
-
-	    set inputs [if {[set id [$node attr -default "" for]] ne ""} {
-		# <label for="id">
-
-		$self search #$id
-
-	    } else {
-		# <label> <input type=checkbox>
-
-		$self search {
-		    input[type=checkbox], input[type=radio]
-		} -root $node
-	    }]
-
-	    foreach n $inputs {
-		[$n replace] invoke
-	    }
+	#
+	# Install all [~ node event tag *] handlers
+	#
+	foreach meth [$self info methods [list node event tag *]] {
+	    set rest [lassign $meth n e t]
+	    $self node event on {*}$rest \
+		[string map [list %% $rest] {$self node event tag %% $node}]
 	}
     }
     
+    method {node event tag a click} node {
+	if {[set href [$node attr -default "" href]] eq ""} return
+	
+	if {[regexp ^\# $href]} {
+	    $self See $href
+	} else {
+	    puts stderr "Not yet implemented: href=$href"
+	}
+    }
+
+    method {node event tag label click} node {
+	set inputs [if {[set id [$node attr -default "" for]] ne ""} {
+	    # <label for="id">
+	    
+	    $self search #$id
+
+	} else {
+	    # <label> <input type=checkbox>
+
+	    $self search {
+		input[type=checkbox], input[type=radio]
+	    } -root $node
+	}]
+
+	foreach n $inputs {
+	    [$n replace] invoke
+	}
+    }
+
     method Press   {w x y} {
 	# puts stderr "Press $w $x $y"
 	adjust-coords-to $myHtml $w x y
