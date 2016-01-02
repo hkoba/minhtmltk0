@@ -235,8 +235,6 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 
     #========================================
     method install-mouse-handlers {} {
-        bindtags $myHtml [linsert-lsearch [bindtags $myHtml] . \
-                              $win $ourClass]
 
         bind $win <ButtonPress-1>   +[mymethod Press   %W %x %y]
         bind $win <Motion>          +[mymethod Motion  %W %x %y]

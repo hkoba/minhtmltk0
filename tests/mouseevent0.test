@@ -221,7 +221,7 @@ test $P-$D-hover-[incr I] "h2:hover" -body {
 
 incr D
 .ht Reset
-test $P-$D-hover-[incr I] "h2:active" -body {
+test $P-$D-active-[incr I] "h2:active" -body {
     
     # XXX: Without style, dynamic set doesn't take effect!
     .ht parse -final {

@@ -60,7 +60,12 @@ snit::widget minhtmltk {
         
         $self install-html-handlers
         
+        bindtags $myHtml [linsert-lsearch [bindtags $myHtml] . \
+                              $win $ourClass]
+
         $self install-mouse-handlers
+
+        $self install-keyboard-handlers
 
         if {$html ne ""} {
             $self replace_location_html $file $html
@@ -185,10 +190,28 @@ snit::widget minhtmltk {
     ::minhtmltk::helper mouseevent0
     
     #========================================
+    # keyboard event handling
+    #========================================
+
+    method install-keyboard-handlers {} {
+	focus $win
+
+        bind $win <KeyPress-Up>     [list $myHtml yview scroll -1 units]
+        bind $win <KeyPress-Down>   [list $myHtml yview scroll  1 units]
+        bind $win <KeyPress-Return> [list $myHtml yview scroll  1 units]
+        bind $win <KeyPress-Right>  [list $myHtml xview scroll  1 units]
+        bind $win <KeyPress-Left>   [list $myHtml xview scroll -1 units]
+        bind $win <KeyPress-Next>   [list $myHtml yview scroll  1 pages]
+        bind $win <KeyPress-space>  [list $myHtml yview scroll  1 pages]
+        bind $win <KeyPress-Prior>  [list $myHtml yview scroll -1 pages]
+	
+    }
+
+    #========================================
     # Misc.
     #========================================
 
-    method See node_or_selector {
+    method See {node_or_selector {now no}} {
         set node [if {[regexp ^::tkhtml::node $node_or_selector]} {
             set node_or_selector
         } else {
@@ -197,7 +220,8 @@ snit::widget minhtmltk {
         # puts Seeing-$node_or_selector->$node
         if {$node eq ""} return
         
-        $self yview $node
+	$self yview $node
+	# XXX: 
     }
 }
 
