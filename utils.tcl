@@ -57,5 +57,36 @@ namespace eval ::minhtmltk::utils {
 	set dict
     }
     
+    proc linsert-lsearch {list look4 args} {
+	if {[set pos [lsearch -exact $list $look4]] < 0} {
+	    error "Can't find $look4 in $list"
+	}
+	linsert $list $pos {*}$args
+    }
+
+    proc adjust-coords-to {to W xVar yVar} {
+	upvar 1 $xVar x
+	upvar 1 $yVar y
+	while {$W ne "" && $W ne $to} {
+	    # puts stderr W=$W,x=[winfo x $W],y=[winfo y $W]
+	    incr x [winfo x $W]
+	    incr y [winfo y $W]
+	    set W [winfo parent $W]
+	}
+    }
+
+    # XXX: Is this ok?
+    proc adjust-coords-from {from W xVar yVar} {
+	upvar 1 $xVar x
+	upvar 1 $yVar y
+	while {$W ne "" && $W ne $from} {
+	    # puts stderr W=$W,x=[winfo x $W],y=[winfo y $W]
+	    incr x [expr {-1 * [winfo x $W]}]
+	    incr y [expr {-1 * [winfo y $W]}]
+	    # if {$W eq $from} break
+	    set W [winfo parent $W]
+	}
+    }
+
     namespace export *
 }

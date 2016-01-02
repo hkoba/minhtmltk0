@@ -22,7 +22,7 @@ snit::widget minhtmltk {
 
     typevariable ourClass Minhtmltk
 
-    component myHtml -public html -inherit yes
+    component myHtml -inherit yes
     variable stateStyleList
     
     option -encoding ""
@@ -68,6 +68,14 @@ snit::widget minhtmltk {
         }
     }
     
+    method html args {
+	if {$args eq ""} {
+	    set myHtml
+	} else {
+	    $myHtml {*}$args
+	}
+    }
+
     #----------------------------------------
     
     option -emit-ready-immediately no
@@ -255,20 +263,10 @@ snit::widget minhtmltk {
 	$self yview $node
     }
 
-    proc linsert-lsearch {list look4 args} {
-	if {[set pos [lsearch -exact $list $look4]] < 0} {
-	    error "Can't find $look4 in $list"
-	}
-	linsert $list $pos {*}$args
-    }
-
     method install-mouse-handlers {} {
 	bindtags $myHtml [linsert-lsearch [bindtags $myHtml] . \
 			      $win $ourClass]
 
-	# puts win-bindtags=[bindtags $win]
-	# puts html-bindtags=[bindtags $myHtml]
-	
 	bind $win <ButtonPress-1>   +[mymethod Press   %W %x %y]
 	bind $win <Motion>          +[mymethod Motion  %W %x %y]
 	bind $win <ButtonRelease-1> +[mymethod Release %W %x %y]
@@ -306,12 +304,20 @@ snit::widget minhtmltk {
     }
     
     method Press   {w x y} {
+	# puts stderr "Press $w $x $y"
 	adjust-coords-to $myHtml $w x y
 	set nodelist [$myHtml node $x $y]
-	puts "Press $w $x $y; nodelist=$nodelist"
+	# puts stderr "adjusted to $x $y nodelist=$nodelist"
     }
     method Motion  {w x y} {
-	#puts "Motion $w $x $y"
+	# puts stderr "Motion $w $x $y"
+	adjust-coords-to $myHtml $w x y
+	set nodelist [$myHtml node $x $y]
+	# puts stderr "Motion adjusted to $x $y nodelist=$nodelist"
+	# apply [list {myHtml w x y} {
+	#     adjust-coords-from $myHtml $w x y
+	#     puts stderr " reverse adjust => $x $y"
+	# } ::minhtmltk] $myHtml $w $x $y
     }
     method Release {w x y} {
 	adjust-coords-to $myHtml $w x y
@@ -327,16 +333,6 @@ snit::widget minhtmltk {
     method {event generatelist} evlist {
 	foreach {event node} $evlist {
 	    $self node event trigger $node $event
-	}
-    }
-
-    proc adjust-coords-to {to W xVar yVar} {
-	upvar 1 $xVar x
-	upvar 1 $yVar y
-	while {$W ne "" && $W ne $to} {
-	    incr x [winfo x $W]
-	    incr y [winfo y $W]
-	    set W [winfo parent $W]
 	}
     }
 }

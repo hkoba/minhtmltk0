@@ -20,6 +20,8 @@ test $P-init load -body {
 		minhtmltk0.tcl]
 } -result $type
 
+namespace import ::minhtmltk::utils::*
+
 proc iota1 {n} {
     struct::list mapfor v [struct::list iota $n] {expr {$v+1}}
 }
@@ -34,7 +36,7 @@ test $P-create "" -body {
 # 
 
 incr D
-test $P-ready-eager "ready (eager)" -body {
+test $P-$D-ready-eager "ready (eager)" -body {
     
     set ::out ""
     bind .ht <<DocumentReady>> [list set ::out READY]
@@ -50,7 +52,7 @@ test $P-ready-eager "ready (eager)" -body {
 } -result READY
 
 .ht Reset
-test $P-ready-lazy "ready (lazy)" -body {
+test $P-$D-ready-lazy "ready (lazy)" -body {
     
     .ht configure -emit-ready-immediately no
 
@@ -67,7 +69,7 @@ test $P-ready-lazy "ready (lazy)" -body {
 } -result READY
 
 .ht Reset; # Note: This resets [$ht on trigger]s too!
-test $P-on-ready "(global) on event command" -body {
+test $P-$D-on-ready "(global) on event command" -body {
 
     set ::out ""
     bind .ht <<DocumentReady>> [list lappend ::out We are]
@@ -85,5 +87,43 @@ test $P-on-ready "(global) on event command" -body {
 
     set ::out
 } -result {We are READY!!!!}
+
+#========================================
+
+proc + {a b} {expr {$a + $b}}
+proc avg {a b} {expr {($a + $b)/2}}
+proc center bbox {
+    lassign $bbox x1 y1 x2 y2
+    list [avg $x1 $x2] [avg $y1 $y2]
+}
+
+incr D
+.ht Reset
+test $P-$D-click-[incr I] "on h2 click" -body {
+    
+    bind .ht <<DocumentReady>> {}; # Make sure previous 'ready' is removed.
+
+    .ht parse -final {
+	<h2>Hello!</h2>
+    }
+    
+    set ::out ""
+    .ht node event on h2 click {
+	set ::out "Clicked!"
+    }
+    
+    update idletask
+
+    set h2node [.ht search h2]
+    #puts stderr h2node=$h2node
+    lassign [center [.ht bbox $h2node]] cx cy
+    minhtmltk::utils::adjust-coords-from [.ht html] .ht cx cy
+
+    .ht Press   .ht $cx $cy
+    .ht Release .ht $cx $cy
+    
+    set ::out
+
+} -result Clicked!
 
 catch {destroy .}
