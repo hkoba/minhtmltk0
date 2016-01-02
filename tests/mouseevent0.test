@@ -4,12 +4,23 @@
     exec tclsh -encoding utf-8 "$0" ${1+"$@"}
     
 package require tcltest
-namespace import tcltest::test
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
 
 package require struct::list
 
 set P mouseevent0
 set type ::minhtmltk
+
+test $P-setup setup -body {
+    deleteWindows
+    winfo children .
+} -result ""
 
 test $P-init load -body {
     # set abs [file normalize [info script]]
@@ -165,4 +176,4 @@ test $P-$D-click-[incr I] "label click => checkbox/radio" -body {
 } -result [list [list before []] [list after {q1 1 q2 2}]]
 
 
-catch {destroy .}
+tcltest::cleanupTests

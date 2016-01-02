@@ -4,7 +4,13 @@
     exec tclsh -encoding utf-8 "$0" ${1+"$@"}
     
 package require tcltest
-namespace import tcltest::test
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
 
 package require struct::list
 
@@ -15,7 +21,7 @@ test $P-init load -body {
     set abs [file normalize [info script]]
     source [file join [file dirname [file dirname $abs]] \
 		[file rootname [file tail $abs]].tcl]
-} -result ""
+} -result $type
 
 test $P-create "" -body {
     $type .ht -debug yes
@@ -336,5 +342,4 @@ test $P-$C-[incr I]-parse "textarea" -body {
                to:be:3 [list q1 3] \
            ]
 
-catch {destroy .}
-
+tcltest::cleanupTests

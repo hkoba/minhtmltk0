@@ -13,6 +13,14 @@ namespace eval ::minhtmltk::helper {}
 # snit::macros dont have individual tcltests!
 #
 
+snit::macro ::minhtmltk::helper::start {} {
+    upvar 1 __helpers_installed installed
+    if {[info exists installed]} {
+	unset installed
+    }
+    array set installed {}
+}
+
 snit::macro ::minhtmltk::helper {helper args} {
     upvar 1 __helpers_installed installed
     if {![info exists installed]} {
