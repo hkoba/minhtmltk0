@@ -13,6 +13,36 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     # You can't add/invoke input[type=checkbox] via [~ node event on/trigger]
     # (at least currently).
 
+    method Press   {w x y} {
+        # puts stderr "Press $w $x $y"
+        adjust-coords-to $myHtml $w x y
+        set nodelist [$myHtml node $x $y]
+        # puts stderr "adjusted to $x $y nodelist=$nodelist"
+    }
+    method Motion  {w x y} {
+        # puts stderr "Motion $w $x $y"
+        adjust-coords-to $myHtml $w x y
+        set nodelist [$myHtml node $x $y]
+        # puts stderr "Motion adjusted to $x $y nodelist=$nodelist"
+        # apply [list {myHtml w x y} {
+        #     adjust-coords-from $myHtml $w x y
+        #     puts stderr " reverse adjust => $x $y"
+        # } ::minhtmltk] $myHtml $w $x $y
+    }
+    method Release {w x y} {
+        adjust-coords-to $myHtml $w x y
+
+        set nodelist [$myHtml node $x $y]
+        # puts stderr click-nodelist=$nodelist
+        set evlist {}
+        foreach node $nodelist {
+            lappend evlist click $node
+        }
+        
+        $self node event generatelist $evlist
+    }
+
+    #========================================
     #
     # Valid event names should be registered below:
     #
@@ -144,6 +174,7 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         set result
     }
 
+    #========================================
     method install-mouse-handlers {} {
         bindtags $myHtml [linsert-lsearch [bindtags $myHtml] . \
                               $win $ourClass]
@@ -162,6 +193,7 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         }
     }
     
+    #========================================
     method {node event tag a click} node {
         if {[set href [$node attr -default "" href]] eq ""} return
         
@@ -189,34 +221,5 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         foreach n $inputs {
             [$n replace] invoke
         }
-    }
-
-    method Press   {w x y} {
-        # puts stderr "Press $w $x $y"
-        adjust-coords-to $myHtml $w x y
-        set nodelist [$myHtml node $x $y]
-        # puts stderr "adjusted to $x $y nodelist=$nodelist"
-    }
-    method Motion  {w x y} {
-        # puts stderr "Motion $w $x $y"
-        adjust-coords-to $myHtml $w x y
-        set nodelist [$myHtml node $x $y]
-        # puts stderr "Motion adjusted to $x $y nodelist=$nodelist"
-        # apply [list {myHtml w x y} {
-        #     adjust-coords-from $myHtml $w x y
-        #     puts stderr " reverse adjust => $x $y"
-        # } ::minhtmltk] $myHtml $w $x $y
-    }
-    method Release {w x y} {
-        adjust-coords-to $myHtml $w x y
-
-        set nodelist [$myHtml node $x $y]
-        # puts stderr click-nodelist=$nodelist
-        set evlist {}
-        foreach node $nodelist {
-            lappend evlist click $node
-        }
-        
-        $self node event generatelist $evlist
     }
 }
