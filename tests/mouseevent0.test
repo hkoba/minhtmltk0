@@ -40,7 +40,7 @@ proc iota1 {n} {
 #========================================
 
 test $P-create "" -body {
-    $type .ht -debug yes
+    $type .ht -debug no
 } -result .ht
 
 #========================================
@@ -143,6 +143,26 @@ test $P-$D-click-[incr I] "on h2 click" -body {
     set ::out
 
 } -result Clicked!
+
+#========================================
+
+incr D
+test $P-$D-parameters-[incr I] "Visible parameters in event handler" -body {
+    
+    set ::out ""
+    .ht node event on h2 click {
+	set ::out [lsort [info vars *]]
+    }
+    
+    #update idletask; # Is not needed
+
+    invokeClick [.ht search h2]
+
+    set ::out
+
+} -result [lsort {self win selfns node this args}]
+
+#========================================
 
 incr D
 .ht Reset

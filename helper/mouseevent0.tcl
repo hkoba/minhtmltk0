@@ -46,8 +46,8 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 	foreach {node cmd} $handlers {
 
 	    # XXX: What kind of API should we have?
-	    apply [list {self win selfns node args} $cmd] \
-		$self $win $selfns $node {*}$args
+	    apply [list {self win selfns node this args} $cmd] \
+		$self $win $selfns $node $node {*}$args
 	}
     }
     
