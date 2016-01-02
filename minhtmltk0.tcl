@@ -113,6 +113,7 @@ snit::widget minhtmltk {
             if {$form eq ""} continue
             $form destroy
         }
+	# XXX: commands <= for tQuery
         foreach stVar [info vars ${selfns}::state*] {
             if {[array exists $stVar]} {
                 array unset $stVar

@@ -13,33 +13,92 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     # You can't add/invoke input[type=checkbox] via [~ node event on/trigger]
     # (at least currently).
 
-    method Press   {w x y} {
-        # puts stderr "Press $w $x $y"
+    variable stateHoverNodes -array []
+    variable stateActiveNodes -array []
+
+    method Press {w x y} {
         adjust-coords-to $myHtml $w x y
         set nodelist [$myHtml node $x $y]
-        # puts stderr "adjusted to $x $y nodelist=$nodelist"
+        # XXX: Selection handling, and its prevention
+        
+        foreach startNode $nodelist {
+            set startNode [parent-of-textnode $startNode]
+            for-upward-node node $startNode {
+                set stateActiveNodes($node) 1
+            }
+        }
+        
+        foreach node [array names stateActiveNodes] {
+            $node dynamic set active
+            lappend evlist mousedown $node
+        }
+        
+        $self node event generatelist $evlist   
     }
-    method Motion  {w x y} {
-        # puts stderr "Motion $w $x $y"
-        adjust-coords-to $myHtml $w x y
-        set nodelist [$myHtml node $x $y]
-        # puts stderr "Motion adjusted to $x $y nodelist=$nodelist"
-        # apply [list {myHtml w x y} {
-        #     adjust-coords-from $myHtml $w x y
-        #     puts stderr " reverse adjust => $x $y"
-        # } ::minhtmltk] $myHtml $w $x $y
-    }
+
     method Release {w x y} {
         adjust-coords-to $myHtml $w x y
-
         set nodelist [$myHtml node $x $y]
-        # puts stderr click-nodelist=$nodelist
+
         set evlist {}
+        foreach node [array names stateActiveNodes] {
+            $node dynamic clear active
+            lappend evlist mouseup $node
+        }
+        array unset stateActiveNodes
+        
         foreach node $nodelist {
             lappend evlist click $node
         }
-        
+
         $self node event generatelist $evlist
+    }
+
+    method Motion {w x y} {
+        adjust-coords-to $myHtml $w x y
+        
+        array set evNodes [$self node gather hovernodes \
+                               [$myHtml node $x $y]]
+	# puts stderr evNodes=[array get evNodes]
+
+        array set actions [list mouseover set mouseout clear]
+
+        set evlist [list]
+        foreach key [list mouseover mouseout] {
+            foreach node $evNodes($key) {
+                $node dynamic $actions($key) hover
+                lappend evlist $key $node
+            }
+        }
+
+        $self node event generatelist $evlist
+    }
+
+    method {node gather hovernodes} nodelist {
+        array set hovernodes  []
+        set evNodes(mouseover) []
+        set evNodes(mouseout)  []
+
+        foreach startNode $nodelist {
+            set startNode [parent-of-textnode $startNode]
+            for-upward-node node $startNode {
+                set vn hovernodes($node)
+                if {[info exists $vn]} break
+                set sn stateHoverNodes($node)
+                if {[info exists $sn]} {
+                    unset $sn
+                } else {
+                    lappend evNodes(mouseover) $node
+                }
+                set $vn ""
+            }
+        }
+        
+        set evNodes(mouseout) [array names stateHoverNodes]
+        array unset stateHoverNodes
+        array set stateHoverNodes [array get hovernodes]
+
+        array get evNodes
     }
 
     #========================================

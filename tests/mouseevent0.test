@@ -108,17 +108,21 @@ proc center bbox {
     list [avg $x1 $x2] [avg $y1 $y2]
 }
 
-proc invokeHandlerFor {meth node} {
+proc nodeCenter node {
     # puts stderr invoking=$node,tag=[$node tag]
     lassign [center [.ht bbox $node]] cx cy
     minhtmltk::utils::adjust-coords-from [.ht html] .ht cx cy
-    
-    .ht $meth .ht $cx $cy
+    list $cx $cy
+}
+
+proc invokeHandlerFor {meth pos} {
+    .ht $meth .ht {*}$pos
 }
 
 proc invokeClick node {
-    invokeHandlerFor Press   $node
-    invokeHandlerFor Release $node
+    set pos [nodeCenter $node]
+    invokeHandlerFor Press   $pos
+    invokeHandlerFor Release $pos
 }
 
 incr D
@@ -179,6 +183,80 @@ test $P-$D-parameters-[incr I] "Visible parameters in event handler" -body {
     set ::out
 
 } -result [lsort {self win selfns node this args}]
+
+incr D
+.ht Reset
+test $P-$D-hover-[incr I] "h2:hover" -body {
+    
+    # XXX: Without style, dynamic set doesn't take effect!
+    .ht parse -final {
+	<style>h2:hover {background: red;}</style>
+	<h2>Hello!</h2>
+	<pre>foobar</pre>
+    }
+    
+    set res []
+    lappend res [list init [.ht search h2:hover]]
+
+    invokeHandlerFor Motion [nodeCenter [.ht search h2]]
+
+    update idletask;
+    # ↑This is required for [.ht search h2:hover]
+    # but is not required for [[.ht search h2] dynamic conditions].
+
+    lappend res [list hovered [expr {[.ht search h2:hover] ne ""}] \
+		     [[.ht search h2] dynamic conditions]]
+
+    invokeHandlerFor Motion [nodeCenter [.ht search pre]]
+
+    update idletask;
+
+    lappend res [list out [.ht search h2:hover]]
+
+    set res
+
+} -result [list [list init []] \
+	       [list hovered 1 h2:hover] \
+	       [list out []]]
+
+incr D
+.ht Reset
+test $P-$D-hover-[incr I] "h2:active" -body {
+    
+    # XXX: Without style, dynamic set doesn't take effect!
+    .ht parse -final {
+	<style>
+	h2 {border: solid 2px blue;}
+	h2:hover {background: gray50;}
+	h2:active {color: red;}
+	</style>
+	<h2>Hello!</h2>
+	<pre>foobar</pre>
+    }
+    
+    set res []
+    lappend res [list init [.ht search h2:active]]
+
+    invokeHandlerFor Motion [nodeCenter [.ht search h2]]
+    invokeHandlerFor Press  [nodeCenter [.ht search h2]]
+
+    update idletask;
+
+    lappend res [list active [expr {[.ht search h2:active] ne ""}] \
+		     [lsort [[.ht search h2] dynamic conditions]]]
+
+    invokeHandlerFor Release [nodeCenter [.ht search h2]]
+    invokeHandlerFor Motion  [nodeCenter [.ht search pre]]
+
+    update idletask;
+
+    lappend res [list out [.ht search h2:active]]
+
+    set res
+
+} -result [list [list init []] \
+	       [list active 1 {h2:active h2:hover}] \
+	       [list out []]]
 
 #========================================
 
