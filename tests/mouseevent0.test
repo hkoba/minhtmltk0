@@ -1,0 +1,89 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+    
+package require tcltest
+namespace import tcltest::test
+
+package require struct::list
+
+set P mouseevent0
+set type ::minhtmltk
+
+test $P-init load -body {
+    # set abs [file normalize [info script]]
+    # source [file join [file dirname [file dirname $abs]] \
+    # 		[file rootname [file tail $abs]].tcl]
+    set abs [file normalize [info script]]
+    source [file join [file dirname [file dirname $abs]] \
+		minhtmltk0.tcl]
+} -result $type
+
+proc iota1 {n} {
+    struct::list mapfor v [struct::list iota $n] {expr {$v+1}}
+}
+
+#========================================
+
+test $P-create "" -body {
+    $type .ht -debug yes
+} -result .ht
+
+#========================================
+# 
+
+incr D
+test $P-ready-eager "ready (eager)" -body {
+    
+    set ::out ""
+    bind .ht <<DocumentReady>> [list set ::out READY]
+
+    .ht configure -emit-ready-immediately yes
+
+    .ht parse -final {
+	<h2>Hello!</h2>
+    }
+    # Without entering eventloop.
+
+    set ::out
+} -result READY
+
+.ht Reset
+test $P-ready-lazy "ready (lazy)" -body {
+    
+    .ht configure -emit-ready-immediately no
+
+    set ::out ""
+
+    .ht parse -final {
+	<h2>Hello!</h2>
+    }
+    
+    # Enter eventloop.
+    update idletask; # This is required (unless -emit-ready-immediately is yes)
+
+    set ::out
+} -result READY
+
+.ht Reset; # Note: This resets [$ht on trigger]s too!
+test $P-on-ready "(global) on event command" -body {
+
+    set ::out ""
+    bind .ht <<DocumentReady>> [list lappend ::out We are]
+    .ht on ready [list lappend ::out READY!!!!]
+    # [bind] handler and [$ht on ] handler can coexist and called in this order.
+
+    # puts stderr handlers=[.ht node event dump-handlers]
+    # puts stderr ready=[dict get [.ht node event dump-handlers] "" ready]
+
+    .ht parse -final {
+	<h2>Hello!</h2>
+    }
+    
+    update idletask;
+
+    set ::out
+} -result {We are READY!!!!}
+
+catch {destroy .}

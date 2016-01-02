@@ -20,7 +20,9 @@ source [file dirname [info script]]/helper.tcl
 
 snit::widget minhtmltk {
 
-    component myHtml -public document -inherit yes
+    typevariable ourClass Minhtmltk
+
+    component myHtml -public html -inherit yes
     variable stateStyleList
     
     option -encoding ""
@@ -33,6 +35,8 @@ snit::widget minhtmltk {
             ::ttk::style configure $t \
                 -background white -activebackground white
         }
+
+	bind $ourClass <<DocumentReady>> {%W trigger ready}
     }
 
     #========================================
@@ -53,9 +57,6 @@ snit::widget minhtmltk {
         
         $self configurelist $args
         
-	bind $win <<DocumentReady>> [list $self node event trigger \
-					 [$myHtml node] ready]
-
         $self install-html-handlers
 	
 	$self install-mouse-handlers
@@ -69,12 +70,20 @@ snit::widget minhtmltk {
     
     #----------------------------------------
     
+    option -emit-ready-immediately no
+
     variable stateHtmlSource ""
     method parse args {
         append stateHtmlSource [lindex $args end]
         $myHtml parse {*}$args
 	if {[lindex $args 0] eq "-final"} {
-	    after idle [list event generate $win <<DocumentReady>>]
+	    set cmd [list event generate $win <<DocumentReady>>]
+	    # This cmd will call [$self node event trigger "" ready]
+	    if {$options(-emit-ready-immediately)} {
+		{*}$cmd
+	    } else {
+		after idle $cmd
+	    }
 	}
     }
 
@@ -157,10 +166,12 @@ snit::widget minhtmltk {
     }
 
     #========================================
-    # mouse handling, salvaged from ::hv3::hv3::mousemanager
+    # mouse handling, salvaged and extended from ::hv3::hv3::mousemanager
     #========================================
 
-    set evlist [list submit \
+    set evlist [list \
+		    ready \
+		    submit \
 		    mouseover mousemove mouseout click \
 		    dblclick mousedown mouseup]
     typevariable ourMouseEventList $evlist
@@ -179,13 +190,18 @@ snit::widget minhtmltk {
 
     # Node event. 
     method {node event on} {node event command} {
+	if {[dict exists $stateTriggerDict $node $ourEvDict($event)]} {
+	    $self error add "Replacing handler for $event with $command"
+	}
 	dict set stateTriggerDict $node $ourEvDict($event) $command
 	# puts stateTriggerDict=$stateTriggerDict
     }
 
     method {node event trigger} {startNode event args} {
-	
-	foreach {node cmd} [$self node event list-handlers $startNode $event] {
+
+	set handlers [$self node event list-handlers $startNode $event]
+
+	foreach {node cmd} $handlers {
 
 	    # XXX: What kind of API should we have?
 	    apply [list {self win selfns node args} $cmd] \
@@ -193,10 +209,18 @@ snit::widget minhtmltk {
 	}
     }
     
+    method {node event dump-handlers} {} {
+	set stateTriggerDict
+    }
+
+    #
+    # This defines event triggering order.
+    #
     option -generate-tag-class-event yes
     method {node event list-handlers} {startNode event} {
 	set result {}
-	set altList [if {$options(-generate-tag-class-event)} {
+	set altList [if {$startNode ne ""
+			 && $options(-generate-tag-class-event)} {
 	    tag-class-list-of-node $startNode
 	}]
 	
@@ -214,7 +238,8 @@ snit::widget minhtmltk {
 
 	    lappend result $node $cmd
 
-	} {*}$altList [list "" [parent-of-textnode $startNode]]
+	} {*}$altList [list "" [$myHtml node]]
+
 	set result
     }
 
@@ -230,8 +255,16 @@ snit::widget minhtmltk {
 	$self yview $node
     }
 
+    proc linsert-lsearch {list look4 args} {
+	if {[set pos [lsearch -exact $list $look4]] < 0} {
+	    error "Can't find $look4 in $list"
+	}
+	linsert $list $pos {*}$args
+    }
+
     method install-mouse-handlers {} {
-	bindtags $myHtml [list {*}[bindtags $myHtml] $win]
+	bindtags $myHtml [linsert-lsearch [bindtags $myHtml] . \
+			      $win $ourClass]
 
 	# puts win-bindtags=[bindtags $win]
 	# puts html-bindtags=[bindtags $myHtml]
@@ -314,3 +347,6 @@ if {![info level] && [info exists ::argv0]
     pack [minhtmltk .win {*}[minhtmltk::parsePosixOpts ::argv]] \
         -fill both -expand yes
 }
+
+list ::minhtmltk
+
