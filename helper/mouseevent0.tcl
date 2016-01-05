@@ -155,7 +155,8 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 
     method {node event trigger} {startNode event args} {
 
-        set handlers [$self node event list-handlers $startNode $event]
+        set handlers [$self node event list-handlers $startNode $event \
+			  $args]
         # puts startNode=$startNode,[if {$startNode ne ""} {
         #     list tag=[$startNode tag]
         # }],event=$event,handlers=$handlers
@@ -202,7 +203,7 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     # This defines event triggering order.
     #
     option -generate-tag-class-event yes
-    method {node event list-handlers} {startNode event} {
+    method {node event list-handlers} {startNode event {arglist ""}} {
         set result {}
         if {$startNode ne ""} {
             set startNode [parent-of-textnode $startNode]
@@ -224,11 +225,19 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 
             if {![dict-getvar $stateTriggerDict $key $event cmdlist]} continue
 
+	    if {$node eq ""} {
+		set node [if {$startNode ne ""} {
+		    set startNode
+		} else {
+		    $myHtml node
+		}]
+	    }
+
             foreach cmd $cmdlist {
-                lappend result [list $event $node $cmd]
+                lappend result [list $event $node $cmd {*}$arglist]
             }
 
-        } {*}$altList [list "" [$myHtml node]]
+        } {*}$altList ""
 
         set result
     }

@@ -291,5 +291,57 @@ test $P-$D-click-[incr I] "label click => checkbox/radio" -body {
 
 } -result [list [list before []] [list after {q1 1 q2 2}]]
 
+#========================================
+
+incr D
+.ht Reset
+test $P-$D-submit-[incr I] "submit" -body {
+    
+    .ht parse -final {
+	<form name="nav">
+	<input type="submit" id="go" name="go" value="Go!">
+	<input type="submit" id="back" name="back" value="back">
+	</form>
+    }
+    
+    set ::out []
+    .ht on submit {
+	array set props $args
+	# lappend ::out [list get_all [$props(form) get_all]]
+	lappend ::out [list names [lsort [array names props]]]
+	lappend ::out [list name $props(name)]
+	lappend ::out [list tag [$node tag]]
+	lappend ::out [list node-name [$node attr -default "" name]]
+    }
+
+    # update idletask
+
+    set form [.ht form get 0]
+
+    # puts stderr handlers=[.ht node event dump-handlers]
+    foreach id {go back} {
+	lappend ::out $id
+	set input [.ht search #$id]
+	if {$input eq ""} {
+	    error "Can't find node for id=$id"
+	}
+	[$input replace] invoke
+    }
+
+    set ::out
+
+} -result [list \
+	       go \
+	       [list names [list form name]] \
+	       [list name go] \
+	       [list tag input] \
+	       [list node-name go] \
+	       back \
+	       [list names [list form name]] \
+	       [list name back] \
+	       [list tag input] \
+	       [list node-name back] \
+	      ]
+
 
 tcltest::cleanupTests
