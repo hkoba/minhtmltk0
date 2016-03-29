@@ -325,7 +325,11 @@ test $P-$D-submit-[incr I] "submit" -body {
 	if {$input eq ""} {
 	    error "Can't find node for id=$id"
 	}
-	[$input replace] invoke
+	if {[.ht cget -use-tk-button]} {
+	    [$input replace] invoke
+	} else {
+	    .ht node event trigger $input click
+	}
     }
 
     set ::out

@@ -31,7 +31,7 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         upvar 1 path path
         set path [$self node path $node]
         uplevel 1 $command
-        if {[info exists path] && $path ne ""} {
+        if {[info exists path] && $path ne "" && [winfo exists $path]} {
             $node replace $path -deletecmd [list destroy $path] \
                 -configurecmd [list $self node configure $path]
         }
@@ -281,19 +281,32 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         $self add input text $path $node $form -show * {*}$args
     }
 
+    option -use-tk-button no
+
     method {add input button} {path node form args} {
-        set text [$node attr -default [from args -text] value]
-        ttk::button $path -takefocus 1 -text $text {*}$args
+	if {$options(-use-tk-button)} {
+	    set text [$node attr -default [from args -text] value]
+	    ttk::button $path -takefocus 1 -text $text \
+		-command [list $self node event trigger $node click \
+			      form $form] \
+		{*}$args
+	}
     }
         
     method {add input submit} {path node form args} {
         $form node add submit $node \
             [node-atts-assign $node name {value Submit}]
 
-        # XXX: This -command behavior is experimental and will be changed!
-        ttk::button $path -takefocus 1 -text $value \
-            -command [list $self node event trigger $node submit \
-                          form $form name $name] {*}$args
+	# XXX: This node event API is not yet stabilized.
+	if {$options(-use-tk-button)} {
+	    ttk::button $path -takefocus 1 -text $value \
+		-command [list $self node event trigger $node submit \
+			      form $form name $name] {*}$args
+	} else {
+	    $self node event on $node click \
+		[list $self node event trigger $node submit \
+		     form $form name $name]
+	}
     }
 
     method {add input checkbox} {path node form args} {
