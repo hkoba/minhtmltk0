@@ -59,6 +59,7 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
     variable stateInForm ""
     variable stateFormList {}
     variable stateFormNameDict -array {}
+    variable stateFormNodeDict -array {}
     variable stateOuterForm ""
 
     method {add parse form} {node args} {
@@ -105,8 +106,13 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
 
         set form [$self form new $name -action [$node attr -default "" action] \
                      -node $node]
+	set stateFormNodeDict($node) $form
         lappend stateFormList $form
         set $vn $form
+    }
+    
+    method {form of-node} node {
+	set stateFormNodeDict($node)
     }
     
     method {form current} {} {
