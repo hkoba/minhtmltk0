@@ -138,6 +138,33 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     #
     # Node event.
     #
+    method {node event add} {node event command} {
+	$self $node event on $node $event $command
+    }
+    method raise-if-strict-event msg {
+	if {$options(-strict-event)} {
+	    error $msg
+	} else {
+	    return -code return
+	}
+    }
+
+    option -strict-event no
+    method {node event remove} {node event command} {
+	if {![info exists ourEvDict($event)]} {
+	    $self raise-if-strict-event "Unknown event name $event"
+	}
+        if {![dict exists $stateTriggerDict $node]} {
+	    $self raise-if-strict-event "No events are known for $node"
+	}
+	dict with stateTriggerDict $node {
+	    set curList [set $ourEvDict($event)]
+	    if {[set pos [lsearch $curList $command]] >= 0} {
+		set $ourEvDict($event) [lreplace $curList $pos $pos]
+	    }
+	}
+    }
+
     method {node event on} {node event command} {
         if {![dict exists $stateTriggerDict $node]} {
             dict set stateTriggerDict $node \
