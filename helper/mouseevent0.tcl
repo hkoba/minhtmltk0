@@ -28,6 +28,7 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
             }
         }
         
+	set evlist {}
         foreach node [array names stateActiveNodes] {
             $node dynamic set active
             lappend evlist mousedown $node
