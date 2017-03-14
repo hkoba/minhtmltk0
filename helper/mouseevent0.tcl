@@ -219,7 +219,11 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
             $self $win $selfns $node $node {*}$args
     }
 
+    option -debug-mouse-event 0
     method {node event generatelist} evlist {
+        if {$options(-debug-mouse-event) >= 2} {
+            puts stderr "(node event generatelist) $evlist"
+        }
         set handlers {}
         foreach {event node} $evlist {
             lappend handlers {*}[$self node event list-handlers $node $event]
