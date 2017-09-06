@@ -100,5 +100,16 @@ namespace eval ::minhtmltk::utils {
         set res
     }
 
+    # Derived from: http://wiki.tcl.tk/1043
+    proc getBacktrace {{uplevel 0}} {
+        set bt []
+        set level [expr {[info level] - 2 - $uplevel}]
+        while {$level > 0} {
+            lappend bt [lindex [info level $level] 0]
+            incr level -1
+        }
+        set bt
+    }
+
     namespace export *
 }
