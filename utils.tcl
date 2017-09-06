@@ -12,6 +12,14 @@ namespace eval ::minhtmltk::utils {
         }
     }
 
+    proc dict-default {dict key {default ""}} {
+        if {[dict exists $dict $key]} {
+            dict get $dict $key
+        } else {
+            set default
+        }
+    }
+
     proc dict-cut {dictVar key args} {
         upvar 1 $dictVar dict
         if {[dict exists $dict $key]} {
@@ -105,7 +113,11 @@ namespace eval ::minhtmltk::utils {
         set bt []
         set level [expr {[info level] - 2 - $uplevel}]
         while {$level > 0} {
-            lappend bt [lindex [info level $level] 0]
+            set fr [info frame $level]
+            lappend bt [list \
+                            [dict get $fr cmd]\
+                            [dict-default $fr line]\
+                            [dict-default $fr proc]]
             incr level -1
         }
         set bt
