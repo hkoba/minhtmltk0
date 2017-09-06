@@ -34,7 +34,9 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
             lappend evlist mousedown $node
         }
         
-        $self node event generatelist $evlist   
+        set rc [$self node event generatelist $evlist]
+
+        $self node event selection press $rc [lindex $nodelist end] $x $y
     }
 
     method Release {w x y} {
@@ -53,26 +55,41 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         }
 
         $self node event generatelist $evlist
+
+        $self node event selection release [lindex $nodelist end] $x $y
     }
 
     method Motion {w x y} {
         adjust-coords-to $myHtml $w x y
         
-        array set evNodes [$self node gather hovernodes \
-                               [$myHtml node $x $y]]
+        set nodelist [$myHtml node $x $y]
+
+        array set evNodes [$self node gather hovernodes $nodelist]
 	# puts stderr evNodes=[array get evNodes]
 
         array set actions [list mouseover set mouseout clear]
 
-        set evlist [list]
-        foreach key [list mouseover mouseout] {
-            foreach node $evNodes($key) {
-                $node dynamic $actions($key) hover
-                lappend evlist $key $node
+        set handlers [list]
+        foreach event [list mouseover mouseout] {
+            foreach node $evNodes($event) {
+                $node dynamic $actions($event) hover
+                lappend handlers [$self node event list-handlers $node $event]
             }
         }
 
-        $self node event generatelist $evlist
+        if {[set N [lindex $nodelist end]] eq ""} {
+            set N [$myHtml node]
+        }
+        foreach handler [$self node event list-handlers $N mousemove] {
+            # event node cmd {*}$args
+            lappend handlers [linsert $handler end x $x y $y]
+        }
+
+        # puts handlers=[join $handlers \n]
+
+        $self node event handlelist $handlers
+
+        $self node event selection motion [lindex $nodelist end] $x $y
     }
 
     method {node gather hovernodes} nodelist {
@@ -197,11 +214,13 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     #
     option -event-in-apply yes
     method {node event handlelist} handlers {
+        set count 0
         if {$options(-event-in-apply)} {
             # Safer, but need to use [return -code break] instead of [break]
             foreach spec $handlers {
                 set args [lassign $spec event node cmd]
                 $self node event apply $event $node $cmd {*}$args
+                incr count
             }
         } else {
             # Can be fragile.
@@ -209,8 +228,12 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
                 set args [lassign $spec event node cmd]
                 set this $node
                 eval $cmd
+                incr count
             }
         }
+
+        # returns whether all handlers are processed.
+        expr {[llength $handlers] == $count}
     }
 
     method {node event apply} {event node cmd args} {
@@ -275,12 +298,17 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     }
 
     #========================================
+    # install-mouse-handlers is called everytime [$self interactive] is called.
+    # So, I want to avoid `+` prefix for bind handlers.
+    #
     method install-mouse-handlers {} {
 
-        bind $win <ButtonPress-1>   +[mymethod Press   %W %x %y]
-        bind $win <Motion>          +[mymethod Motion  %W %x %y]
-        bind $win <ButtonRelease-1> +[mymethod Release %W %x %y]
+        bind $win <ButtonPress-1>   [list $self Press   %W %x %y]
+        bind $win <Motion>          [list $self Motion  %W %x %y]
+        bind $win <ButtonRelease-1> [list $self Release %W %x %y]
         
+        bind $win <<Copy>> [list $win selection toClipboard]
+
         #
         # Install all [~ node event tag *] handlers
         #
@@ -289,6 +317,8 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
             $self node event on {*}$rest \
                 [string map [list %% $rest] {$self node event tag %% $node}]
         }
+
+        selection handle $win [list $win selection read]
     }
     
     #========================================
@@ -319,5 +349,140 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         foreach n $inputs {
             [$n replace] invoke
         }
+    }
+
+    #========================================
+    # Salvaged from ::hv3::hv3::selectionmanager.
+    # selection mode feature (char/word/block) is dropped to make code simple.
+    #
+
+    # Since state$VAR is repeatedly initialized to "" by Reset,
+    # use of "false" here can lead inconsistent result.
+    # So I explicitly initialize these flag vars with "".
+    variable stateMouseDown ""
+    variable stateMouseIgnoreMotion ""
+
+    variable stateMouseFromNode ""
+    variable stateMouseFromIdx ""
+    variable stateMouseToNode ""
+    variable stateMouseToIdx ""
+
+    method {node event selection press} {successEv node x y} {
+        $self selection clear
+        if {$successEv} {
+            set stateMouseDown yes
+            $self selection adjust $node $x $y
+        }
+    }
+
+    method {node event selection motion} {node x y} {
+        if {$stateMouseDown eq "" || $stateMouseIgnoreMotion ne ""} return
+        $self selection adjust $node $x $y
+    }
+
+    method {node event selection release} {node x y} {
+        set stateMouseDown ""
+    }
+
+    method {selection clear} {} {
+        # node is ignored.
+
+        $myHtml tag delete selection
+        $myHtml tag configure selection \
+            -foreground white -background darkgrey
+        set stateMouseFromNode ""
+        set stateMouseToNode ""
+        
+        # Memo: stateMouseFromNode が "" にされた時に bacgrace を出す
+        # set vn [myvar stateMouseFromNode]
+        # trace add variable $vn write \
+        #     [list apply [list [list self varName args] {
+        #         if {[set $varName] eq ""} {
+        #             puts [join [::minhtmltk::utils::getBacktrace] \n]\n
+        #         }
+        #     }] $self $vn]
+    }
+
+    method {selection adjust} {node x y} {
+        if {$node eq ""} {
+            set node [$myHtml node]
+        }
+
+        set to [$myHtml node -index $x $y]
+        lassign $to toNode toIdx
+
+        if {$node ne "" && $toNode ne ""
+            && [$node stacking] ne [$toNode stacking]} {
+            set to ""
+        } elseif {$stateMouseFromNode eq ""} {
+            set stateMouseFromNode $toNode
+            set stateMouseFromIdx $toIdx
+        }
+
+        if {$to ne ""} {
+
+            set rc [catch {
+                if {$stateMouseToNode ne $toNode || $toIdx != $stateMouseToIdx} {
+                    if {$stateMouseToNode ne ""} {
+                        $myHtml tag remove selection \
+                            $stateMouseToNode $stateMouseToIdx $toNode $toIdx
+                    }
+
+                    #puts [list $stateMouseFromNode $stateMouseFromIdx $toNode $toIdx]
+
+                    $myHtml tag add selection \
+                        $stateMouseFromNode $stateMouseFromIdx $toNode $toIdx
+
+                    if {$stateMouseFromNode ne $toNode || $stateMouseFromIdx != $toIdx} {
+                        selection own $win
+                    }
+                }
+
+                set stateMouseToNode $toNode
+                set stateMouseToIdx  $toIdx
+            } msg]
+
+            # Note: node が削除される可能性があるから、とのこと。
+            if {$rc && [regexp {[^ ]+ is an orphan} $msg]} {
+                $me selection clear
+            }
+        }
+
+        # XXX: scroll
+
+    }
+
+    method {selection toClipboard} {} {
+        clipboard clear
+        clipboard append [set s [$self selection get]]
+    }
+
+    method {selection get} {{maxChars 10000000}} {
+        if {$stateMouseFromNode eq ""} return
+        $self selection read 0 $maxChars
+    }
+
+    # XXX: Original ::hv3::hv3::selectionmanager::get_selection wrapped below
+    # with ::hv3::bg, which capture ::errorCode/::errorInfo and resume
+    # them [after idle]. I'm not exactly sure what requires it,
+    # so I postpone implementing ::hv3::bg equiv here.
+    method {selection read} {offset maxChars} {
+        set t [$myHtml text text]
+
+        set n1 $stateMouseFromNode
+        set i1 $stateMouseFromIdx
+        set n2 $stateMouseToNode
+        set i2 $stateMouseToIdx
+
+        set stridx_a [$myHtml text offset $stateMouseFromNode $stateMouseFromIdx]
+        set stridx_b [$myHtml text offset $stateMouseToNode $stateMouseToIdx]
+        if {$stridx_a > $stridx_b} {
+            lassign [list $stridx_b $stridx_a] stridx_a stridx_b
+        }
+
+        set T [string range $t $stridx_a [expr $stridx_b - 1]]
+        set T [string range $T $offset [expr $offset + $maxChars]]
+
+        return $T
     }
 }
