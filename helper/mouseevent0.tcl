@@ -64,7 +64,10 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         
         set nodelist [$myHtml node $x $y]
 
-        array set evNodes [$self node gather hovernodes $nodelist]
+        array set evNodes [$self node hover analyze $nodelist topChanged]
+        if {$topChanged} {
+            $self node hover changeCursor [lindex $nodelist end]
+        }
 	# puts stderr evNodes=[array get evNodes]
 
         array set actions [list mouseover set mouseout clear]
@@ -92,7 +95,15 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         $self node event selection motion [lindex $nodelist end] $x $y
     }
 
-    method {node gather hovernodes} nodelist {
+    method {node hover analyze} {nodelist {topChangedVar ""}} {
+
+        if {$topChangedVar ne ""} {
+            upvar 1 $topChangedVar topChanged
+            set topnode [lindex $nodelist end]
+            set topChanged [expr {$topnode ne "" 
+                                  && $topnode ne $stateTopHoverNode}]
+        }
+
         array set hovernodes  []
         set evNodes(mouseover) []
         set evNodes(mouseout)  []
@@ -117,6 +128,41 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         array set stateHoverNodes [array get hovernodes]
 
         array get evNodes
+    }
+
+    #========================================
+    # Cursor setting
+    
+    typevariable ourCURSORS -array [list      \
+                                        crosshair crosshair      \
+                                        default   ""             \
+                                        pointer   hand2          \
+                                        move      fleur          \
+                                        text      xterm          \
+                                        wait      watch          \
+                                        progress  box_spiral     \
+                                        help      question_arrow \
+                                       ]
+
+    variable stateTopHoverNode ""
+    variable stateCursor ""
+    method {node hover changeCursor} {topnode} {
+        set Cursor ""
+        if {[$topnode tag] eq ""} {
+            set Cursor xterm
+            set topnode [$topnode parent]
+        }
+
+        set css2_cursor [$topnode property cursor]
+        set vn ourCURSORS($css2_cursor)
+        set Cursor [if {[info exists $vn]} {set $vn} else {set Cursor}]
+
+        if {$Cursor ne $stateCursor} {
+            [winfo toplevel $myHtml] configure -cursor $Cursor
+            set stateCursor $Cursor
+        }
+        
+        set stateTopHoverNode $topnode
     }
 
     #========================================
