@@ -60,8 +60,8 @@ snit::widget minhtmltk {
         
         $self install-html-handlers
         
-        bindtags $myHtml [linsert-lsearch [bindtags $myHtml] . \
-                              $win $ourClass]
+        bindtags $myHtml [luniq [linsert-lsearch [bindtags $myHtml] . \
+                                     $win $ourClass]]
 
         $self install-mouse-handlers
 

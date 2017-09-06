@@ -88,5 +88,17 @@ namespace eval ::minhtmltk::utils {
         }
     }
 
+    proc luniq list {
+        array set found {}
+        set res []
+        foreach i $list {
+            set vn found($i)
+            if {[info exists $vn]} continue
+            lappend res $i
+            set $vn $i
+        }
+        set res
+    }
+
     namespace export *
 }
