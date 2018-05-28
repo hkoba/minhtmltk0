@@ -21,7 +21,9 @@ snit::macro ::minhtmltk::helper::errorlogger {} {
     method {error add} error {
         lappend stateParseErrors $error
         if {$options(-debug)} {
-            puts stderr $error
+            lassign $error kind summary trace
+            puts stderr "$kind $summary"
+            puts stderr $trace
         }
     }
     method {error raise} error {
