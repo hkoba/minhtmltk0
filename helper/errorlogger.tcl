@@ -15,6 +15,14 @@ snit::macro ::minhtmltk::helper::errorlogger {} {
             $self error add [list error $error $::errorInfo]
         }
     }
+    method logged-apply {lambda args} {
+        set rc [catch {
+            apply $lambda {*}$args
+        } error]
+        if {$rc} {
+            $self error add [list error $error $::errorInfo]
+        }
+    }
     method {error get} {} {
         set stateParseErrors
     }
