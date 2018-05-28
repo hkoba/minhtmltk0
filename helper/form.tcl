@@ -191,7 +191,9 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
                 }} $path $form $name]
         }
         ttk::combobox $path -state readonly -values $labelList
-        if {$selected ne ""} {
+        if {$labelList eq ""} {
+            return
+        } elseif {$selected ne ""} {
             $path current $selected
         } else {
             $path current 0

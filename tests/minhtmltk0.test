@@ -285,6 +285,16 @@ test $P-$C-[incr I]-parse "select single" -body {
                [list to:be:3 [list q1 3]] \
            ]
 
+test $P-$C-[incr I]-parse "empty select single" -body {
+    .ht Reset
+    .ht parse -final {
+        <form>
+	<select name="q1"></select>
+        </form>
+    }
+    .ht error get
+} -result []
+
 test $P-$C-[incr I]-parse "select multi" -body {
     .ht Reset
     .ht parse -final {
@@ -314,6 +324,16 @@ test $P-$C-[incr I]-parse "select multi" -body {
                [list init []] \
                [list to:be:1,4,5 [list q1 [list 1 4 5]]] \
            ]
+
+test $P-$C-[incr I]-parse "empty select multi" -body {
+    .ht Reset
+    .ht parse -final {
+        <form>
+	<select name="q1" multi></select>
+        </form>
+    }
+    .ht error get
+} -result []
 
 
 #----------------------------------------
