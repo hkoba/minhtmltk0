@@ -111,8 +111,9 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         set $vn $form
     }
     
-    method {form of-node} node {
-	set stateFormNodeDict($node)
+    method {form of-node} startNode {
+        set node [upward-find-tag $startNode form]
+        set stateFormNodeDict($node)
     }
     
     method {form current} {} {

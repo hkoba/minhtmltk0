@@ -41,6 +41,13 @@ snit::macro ::minhtmltk::helper::nodeutil {} {
         }
     }
 
+    proc upward-find-tag {node tag} {
+        while {$node ne "" && [$node tag] ne $tag} {
+            set node [$node parent]
+        }
+        set node
+    }
+
     proc tag-class-list-of-node node {
         set list ""
         set node [parent-of-textnode $node]
