@@ -295,6 +295,20 @@ test $P-$C-[incr I]-parse "empty select single" -body {
     .ht error get
 } -result []
 
+test $P-$C-[incr I]-parse "empty option in select single" -body {
+    .ht Reset
+    .ht parse -final {
+        <form>
+	<select name="q1">
+        <option></option>
+        <option value="1">one</option>
+        </select>
+        </form>
+    }
+    .ht error get
+} -result []
+
+
 test $P-$C-[incr I]-parse "select multi" -body {
     .ht Reset
     .ht parse -final {

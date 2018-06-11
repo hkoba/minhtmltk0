@@ -241,7 +241,8 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         set i -1
         foreach node [$self search option -root $selNode] {
             incr i
-            lappend labelList [set label [[lindex [$node children] 0] text]]
+            if {[set kids [$node children]] eq ""} continue
+            lappend labelList [set label [[lindex $kids 0] text]]
             set value [if {"value" in [$node attr]} {
                 $node attr value
             } else {
