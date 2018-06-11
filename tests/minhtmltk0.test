@@ -301,12 +301,19 @@ test $P-$C-[incr I]-parse "empty option in select single" -body {
         <form>
 	<select name="q1">
         <option></option>
-        <option value="1">one</option>
+        <option>one</option>
+        <option value="2">two</option>
         </select>
         </form>
     }
-    .ht error get
-} -result []
+    set res [list [.ht error get]]
+    set form [.ht form get 0]
+    lappend res [$form choicelist q1]
+    set res
+} -result [list \
+               [] \
+               [list "" one 2] \
+              ]
 
 
 test $P-$C-[incr I]-parse "select multi" -body {
