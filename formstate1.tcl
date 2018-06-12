@@ -258,7 +258,7 @@ snit::type ::minhtmltk::formstate {
 			error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
 		    }
 		    trace add variable $var $trace \
-			[list $self trace scalar $trace $var $cmd]
+			[list $self do-trace scalar $trace $var $cmd]
 		}
 	    }
 	    if {[llength $args]} {
@@ -273,22 +273,22 @@ snit::type ::minhtmltk::formstate {
 		error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
 	    }
 	    trace add variable $array_name $trace \
-		[list $self trace array $trace $cmd]
+		[list $self do-trace array $trace $cmd]
 	}
 
 	$self node var $node
     }
-    method {trace scalar read} {varName apply args} {
+    method {do-trace scalar read} {varName apply args} {
 	set $varName [apply {*}$apply]
     }
-    method {trace scalar write} {varName apply args} {
+    method {do-trace scalar write} {varName apply args} {
 	apply {*}$apply [set $varName]
     }
-    method {trace array read} {apply arrayName ix args} {
+    method {do-trace array read} {apply arrayName ix args} {
 	set [set arrayName]($ix) [apply {*}$apply $ix]
 	$self dvars "trace array read " arrayName ix
     }
-    method {trace array write} {apply arrayName ix args} {
+    method {do-trace array write} {apply arrayName ix args} {
 	apply {*}$apply $ix [set [set arrayName]($ix)]
 	$self dvars "trace array write " arrayName ix
     }
