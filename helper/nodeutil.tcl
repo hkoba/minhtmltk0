@@ -16,6 +16,13 @@ snit::macro ::minhtmltk::helper::nodeutil {} {
         set contents
     }
 
+    method {node set innerHtml} {node html} {
+        # XXX: -before node
+        # XXX: -append?
+        $node remove [$node children]
+        $node insert [$myHtml fragment $html]
+    }
+
     # extract attr (like [lassign]) returns [dict]
     proc node-atts-assign {node args} {
         set _atts {}
