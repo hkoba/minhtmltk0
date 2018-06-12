@@ -190,6 +190,16 @@ snit::type ::minhtmltk::formstate {
 	}
     }
 
+    method test_all {name value args} {
+        set arrayName [dict get $myNameDict $name array_name]
+        foreach value [list $value {*}$args] {
+            if {![default [set arrayName]($value) 0]} {
+                return 0
+            }
+        }
+        return 1
+    }
+
     method names args {
 	dict keys $myNameDict {*}$args
     }

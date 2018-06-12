@@ -192,6 +192,12 @@ test $P-$C-[incr I]-parse "Checkbox with value" -body {
     [$form node widget at 0] invoke
     [$form node widget at 2] invoke
     lappend res [list to:be:1,3 [$form get_all]]
+    foreach i [iota1 3] {
+        lappend res [list test_all q1 $i : [$form test_all q1 $i]]
+    }
+    lappend res [list test_all q1 1 2 3 : [$form test_all q1 1 2 3]]
+    lappend res [list test_all q1 1 3 : [$form test_all q1 1 3]]
+    lappend res [list test_all q1 1 2 : [$form test_all q1 1 2]]
 
     # clear 1, 3
     [$form node widget at 0] invoke
@@ -202,6 +208,12 @@ test $P-$C-[incr I]-parse "Checkbox with value" -body {
 } -result [list \
                [list init []] \
                [list "to:be:1,3" [list q1 [list 1 3]]] \
+               [list test_all q1 1 : 1] \
+               [list test_all q1 2 : 0] \
+               [list test_all q1 3 : 1] \
+               [list test_all q1 1 2 3 : 0] \
+               [list test_all q1 1 3 : 1] \
+               [list test_all q1 1 2 : 1] \
                [list "cleared-again" []] \
            ]
 
