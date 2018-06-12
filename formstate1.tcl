@@ -15,6 +15,7 @@ snit::type ::minhtmltk::formstate {
     option -name ""
     option -action ""
 
+    option -window ""; # Owner minhtmltk of this formstate.
     option -data ""; # Other "satellite" data from Dynamic HTML.
     option -outer-data ""; # Other "satellite" data from User.
 

@@ -127,7 +127,7 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
     }
 
     method {form new} {name args} {
-        formstate $self.form%AUTO% -name $name {*}$args
+        formstate $self.form%AUTO% -window $win -name $name {*}$args
     }
     
     #
