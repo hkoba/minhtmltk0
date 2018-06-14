@@ -270,14 +270,18 @@ snit::type ::minhtmltk::formstate {
 		    set $var $value
 		}
 	    }
+            set curTraceList [trace info variable $var]
 	    foreach {meth trace} {
 		getter read
 		setter write
 	    } {
+                # This [from args] removes getter/setter spec from $args.
 		if {[set cmd [from args $meth ""]] ne ""} {
 		    if {[llength [lindex $cmd 0]] != 2} {
 			error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
 		    }
+                    # Below is a workaround to avoid duplicate trace
+                    if {[lsearch -index 0 $curTraceList $trace] >= 0} continue
 		    trace add variable $var $trace \
 			[list $self do-trace scalar $trace $var $cmd]
 		}
