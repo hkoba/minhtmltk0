@@ -194,6 +194,9 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
                 [dict create name $name value $value]
         }
         ttk::combobox $path -state readonly -values $labelList
+        bind $path <<ComboboxSelected>> \
+            [list $form sync-trace scalar $selNode [$form node var $selNode]]
+
         if {$labelList eq ""} {
             return
         } elseif {$selected ne ""} {
