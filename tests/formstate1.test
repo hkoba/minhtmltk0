@@ -40,11 +40,12 @@ test $P-create "" -body {
 # single
 #
 incr D
+set T single
 set name ss1
 lappend t_names $name
 foreach value [list 1 2 3] {
 
-    test $P-node-add-single-value=$value "\$form node add single name=$name value=$value" -body {
+    test $P-$T-node-add-single-value=$value "\$form node add single name=$name value=$value" -body {
 	set node node-$name-[incr i]
 	$form node add single  \
 	    $node [list name $name value $value]
@@ -53,7 +54,7 @@ foreach value [list 1 2 3] {
     lappend t_nodes $node
     lappend t_pairs $name $value
 
-    test $P-node-dict-get-[incr i] "\$form node dict get" -body {
+    test $P-$T-node-dict-get-[incr i] "\$form node dict get" -body {
 	set res ""
 	foreach k [list name value] {
 	    lappend res [$form node dict get $node $k]
@@ -76,11 +77,12 @@ test $P-name-[incr i] "" -body {
 # multi
 
 incr D
+set T multi
 set name mm1
 lappend t_names $name
 foreach value [list 1 2 3] {
 
-    test $P-node-add-multi-value=$value "\$form node add multi name=$name value=$value" -body {
+    test $P-$T-node-add-multi-value=$value "\$form node add multi name=$name value=$value" -body {
 	set node node-$name-[incr i]
 	$form node add multi  \
 	    $node [list name $name value $value]
@@ -89,7 +91,7 @@ foreach value [list 1 2 3] {
     lappend t_nodes $node
     lappend t_pairs $name $value
     
-    test $P-node-dict-get-[incr i] "\$form node dict get" -body {
+    test $P-$T-node-dict-get-[incr i] "\$form node dict get" -body {
 	set res ""
 	foreach k [list name value] {
 	    lappend res [$form node dict get $node $k]
@@ -111,11 +113,12 @@ test $P-name-[incr i] "" -body {
 # text
 
 incr D
+set T text
 set name tt1
 lappend t_names $name
 foreach value [list foo bar baz] {
 
-    test $P-node-add-text-value=$value "\$form node add text name=$name value=$value" -body {
+    test $P-$T-node-add-text-value=$value "\$form node add text name=$name value=$value" -body {
 	set node node-$name-[incr i]
 	$form node add text  \
 	    $node [list name $name value $value]
@@ -124,7 +127,7 @@ foreach value [list foo bar baz] {
     lappend t_nodes $node
     lappend t_pairs $name $value
     
-    test $P-node-dict-get-[incr i] "\$form node dict get" -body {
+    test $P-$T-node-dict-get-[incr i] "\$form node dict get" -body {
 	set res ""
 	foreach k [list name value] {
 	    lappend res [$form node dict get $node $k]
