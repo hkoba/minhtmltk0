@@ -124,6 +124,7 @@ snit::type ::minhtmltk::formstate {
 	set name [dict get $myNodeDict $node name]
 	upvar 1 value value
 	if {[dict get $myNameDict $name is_array]} {
+            if {![dict exists $myNodeDict $node value]} return
 	    # multi
 	    $self dvars "Var of $name" $vn
 	    if {[set $vn] ne "" && [set $vn]} {
@@ -131,6 +132,7 @@ snit::type ::minhtmltk::formstate {
 		uplevel 1 $command
 	    }
 	} elseif {[dict get $myNameDict $name choiceList] ne ""} {
+            if {![dict exists $myNodeDict $node value]} return
 	    # single
 	    if {[set $vn] eq [dict get $myNodeDict $node value]} {
 		set value [set $vn]
@@ -226,9 +228,12 @@ snit::type ::minhtmltk::formstate {
     }
 
     method {node add} {kind node attr args} {
+        # If name is missing, set default name "".
+        # If value is missing, omit value entry in $myNodeDict
+        set has_value [dict-cutvar attr value]
 	$self node intern $kind $node \
 	    [set name [dict-cut attr name ""]]\
-	    [set value [dict-cut attr value ""]] \
+	    value \
 	    $attr
 	$self dvars "node add" myNodeDict
 	set arrayTraces {}
@@ -245,13 +250,19 @@ snit::type ::minhtmltk::formstate {
 		single {
 		    set var ${selfns}::_S[$self add-name-of $node $name]
 		    $self dvars "after add-name-of" myNameDict
-		    $self add-choice-of $node $name $value
+                    if {$has_value} {
+                        $self add-choice-of $node $name $value
+                    }
 		}
 		multi {
 		    set array_name ${selfns}::_M[$self add-name-of $node $name 1]
 		    dict set myNameDict $name array_name $array_name
-		    set var [set array_name]($value)
-		    $self add-choice-of $node $name $value
+                    if {$has_value} {
+                        set var [set array_name]($value)
+                        $self add-choice-of $node $name $value
+                    } else {
+                        set var [set array_name]
+                    }
 		}
 		default {
 		    $self add-name-of $node $name
@@ -335,14 +346,18 @@ snit::type ::minhtmltk::formstate {
     }
 
     method {node count} {} {dict size $myNodeDict}
-    method {node intern} {kind node name value attr} {
+    method {node intern} {kind node name valueVar attr} {
+        upvar 1 $valueVar value
 	if {[dict exists $myNodeDict $node]} {
 	    error "Duplicate node name! $node"
 	}
 	lappend myNodeList $node
 	dict set myNodeDict $node \
-	    [dict create kind $kind name $name value $value attr $attr\
+	    [dict create kind $kind name $name attr $attr\
 		type "" var ""]
+        if {[info exists value]} {
+            dict set myNodeDict $node value $value
+        }
 	set node
     }
     method {node var} {node} {

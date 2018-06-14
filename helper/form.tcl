@@ -176,6 +176,8 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         lassign [$self form collect options $selNode] \
             nodeDefs labelList selected
 
+        $form node add single $selNode [dict create name $name]
+
         foreach spec $nodeDefs {
             lassign $spec node value
             $form node add single $node \

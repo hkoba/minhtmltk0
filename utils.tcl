@@ -42,6 +42,18 @@ namespace eval ::minhtmltk::utils {
         return 1
     }
     
+    proc dict-cutvar {dictVar key {outVar ""}} {
+        upvar 1 $dictVar dict
+        if {$outVar eq ""} {set outVar $key}
+        upvar 1 $outVar out
+        if {![dict exists $dict $key]} {
+            return 0
+        }
+        set out [dict get $dict $key]
+        dict unset dict $key
+        return 1
+    }
+
     proc rethrow-control {command {no_loop no}} {
         set rc [catch {uplevel 1 $command} result]
         if {$no_loop && $rc in {3 4}} {
