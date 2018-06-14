@@ -176,22 +176,22 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         lassign [$self form collect options $selNode] \
             nodeDefs labelList selected
 
-        $form node add single $selNode [dict create name $name]
+        $form node add single $selNode [dict create name $name] \
+            getter [list {{path form name} {
+                lindex [$form choicelist $name] \
+                    [$path current]
+            }} $path $form $name] \
+            setter [list {{path form name value} {
+                set pos [lsearch -exact [$form choicelist $name] $value]
+                if {$pos >= 0} {
+                    $path current $pos
+                }
+            }} $path $form $name]
 
         foreach spec $nodeDefs {
             lassign $spec node value
             $form node add single $node \
-                [dict create name $name value $value] \
-                getter [list {{path form name} {
-                    lindex [$form choicelist $name] \
-                        [$path current]
-                }} $path $form $name] \
-                setter [list {{path form name value} {
-                    set pos [lsearch -exact [$form choicelist $name] $value]
-                    if {$pos >= 0} {
-                        $path current $pos
-                    }
-                }} $path $form $name]
+                [dict create name $name value $value]
         }
         ttk::combobox $path -state readonly -values $labelList
         if {$labelList eq ""} {
@@ -208,24 +208,26 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         lassign [$self form collect options $selNode] \
             nodeDefs labelList selected
 
+        $form node add multi $selNode [dict create name $name] \
+            getter [list {{path form name ix} {
+                set pos [lsearch -exact [$form choicelist $name] $ix]
+                if {$pos < 0} return
+                $path selection includes $pos
+            }} $path $form $name] \
+            setter [list {{path form name ix value} {
+                set pos [lsearch -exact [$form choicelist $name] $ix]
+                if {$pos < 0} return
+                if {$value} {
+                    $path selection set $pos
+                } else {
+                    $path selection clear $pos
+                }
+            }} $path $form $name]
+
         foreach spec $nodeDefs {
             lassign $spec node value
             $form node add multi $node \
-                [dict create name $name value $value] \
-                array-getter [list {{path form name ix} {
-                    set pos [lsearch -exact [$form choicelist $name] $ix]
-                    if {$pos < 0} return
-                    $path selection includes $pos
-                }} $path $form $name] \
-                array-setter [list {{path form name ix value} {
-                    set pos [lsearch -exact [$form choicelist $name] $ix]
-                    if {$pos < 0} return
-                    if {$value} {
-                        $path selection set $pos
-                    } else {
-                        $path selection clear $pos
-                    }
-                }} $path $form $name]
+                [dict create name $name value $value]
         }
         listbox $path -selectmode extended
         $path insert end {*}$labelList

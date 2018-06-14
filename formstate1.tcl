@@ -236,15 +236,7 @@ snit::type ::minhtmltk::formstate {
 	    value \
 	    $attr
 	$self dvars "node add" myNodeDict
-	set arrayTraces {}
-	foreach {meth trace} {
-	    array-getter read
-	    array-setter write
-	} {
-	    if {[set cmd [from args $meth ""]] ne ""} {
-		lappend arrayTraces [list $meth $trace $cmd]
-	    }
-	}
+
 	dict with myNodeDict $node {
 	    switch $kind {
 		single {
@@ -270,50 +262,55 @@ snit::type ::minhtmltk::formstate {
 		    set $var $value
 		}
 	    }
-            set curTraceList [trace info variable $var]
-	    foreach {meth trace} {
-		getter read
-		setter write
-	    } {
-                # This [from args] removes getter/setter spec from $args.
-		if {[set cmd [from args $meth ""]] ne ""} {
-		    if {[llength [lindex $cmd 0]] != 2} {
-			error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
-		    }
-                    # Below is a workaround to avoid duplicate trace
-                    if {[lsearch -index 0 $curTraceList $trace] >= 0} continue
-		    trace add variable $var $trace \
-			[list $self do-trace scalar $trace $var $cmd]
-		}
-	    }
-	    if {[llength $args]} {
-		error "Unknown node arguments: $args"
-	    }
-	}
-	
-	foreach spec $arrayTraces {
-	    lassign $spec meth trace cmd
-	    set array_name [dict get $myNameDict $name array_name]
-	    if {[llength [lindex $cmd 0]] != 2} {
-		error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
-	    }
-	    trace add variable $array_name $trace \
-		[list $self do-trace array $trace $cmd]
 	}
 
+        set curTraceList [trace info variable $var]
+        foreach {meth trace} {
+            getter read
+            setter write
+        } {
+            # This [from args] removes getter/setter spec from $args.
+            if {[set cmd [from args $meth ""]] eq ""} continue
+            if {[llength [lindex $cmd 0]] != 2} {
+                error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
+            }
+            # Below is a workaround to avoid duplicate trace
+            if {[lsearch -index 0 $curTraceList $trace] >= 0} continue
+            dict set myNodeDict $node $meth $cmd
+
+            if {[dict get $myNameDict $name is_array]} {
+                set array_name [dict get $myNameDict $name array_name]
+                trace add variable $array_name $trace \
+                    [list $self do-trace array $trace $node]
+            } else {
+                trace add variable $var $trace \
+                    [list $self do-trace scalar $trace $node $var]
+            }
+        }
+
+        if {[llength $args]} {
+            error "Unknown node arguments: $args"
+        }
 	$self node var $node
     }
-    method {do-trace scalar read} {varName apply args} {
+    method {sync-trace scalar} {node varName} {
+        set $varName [set $varName]
+    }
+    method {do-trace scalar read} {node varName args} {
+        set apply [dict get $myNodeDict $node getter]
 	set $varName [apply {*}$apply]
     }
-    method {do-trace scalar write} {varName apply args} {
+    method {do-trace scalar write} {node varName args} {
+        set apply [dict get $myNodeDict $node setter]
 	apply {*}$apply [set $varName]
     }
-    method {do-trace array read} {apply arrayName ix args} {
+    method {do-trace array read} {node arrayName ix args} {
+        set apply [dict get $myNodeDict $node getter]
 	set [set arrayName]($ix) [apply {*}$apply $ix]
 	$self dvars "trace array read " arrayName ix
     }
-    method {do-trace array write} {apply arrayName ix args} {
+    method {do-trace array write} {node arrayName ix args} {
+        set apply [dict get $myNodeDict $node setter]
 	apply {*}$apply $ix [set [set arrayName]($ix)]
 	$self dvars "trace array write " arrayName ix
     }
