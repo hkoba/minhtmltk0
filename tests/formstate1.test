@@ -64,7 +64,7 @@ foreach value [list 1 2 3] {
     } -result [list ss1 $value 0]
 }
 
-test $P-name-[incr i] "" -body {
+test $P-$T-name-[incr i] "" -body {
     set res {}
     lappend res [$form names]
     lappend res [$form choicelist $name]
@@ -101,7 +101,7 @@ foreach value [list 1 2 3] {
     } -result [list $name $value 1]
 }
 
-test $P-name-[incr i] "" -body {
+test $P-$T-name-[incr i] "" -body {
     set res {}
     lappend res [$form names]
     lappend res [$form choicelist $name]
@@ -137,7 +137,7 @@ foreach value [list foo bar baz] {
     } -result [list $name $value 0]
 }
 
-test $P-name-[incr i] "" -body {
+test $P-$T-name-[incr i] "" -body {
     set res {}
     lappend res [$form names]
     lappend res [$form choicelist $name]
