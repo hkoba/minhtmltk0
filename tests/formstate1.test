@@ -109,6 +109,33 @@ test $P-$T-name-[incr i] "" -body {
     set res
 } -result [list $t_names [list 1 2 3] []]
 
+test $P-$T-checkbox-set-clear-[incr i] "" -body {
+    set res {}
+    lappend res [$form multi get $name]
+    lappend res [$form multi test_all $name 1 2 3]
+
+    $form multi set $name [list 1 3]
+    lappend res [$form multi get $name]
+    lappend res [$form multi test_all $name 1 2 3]
+    lappend res [$form multi test_all $name 1 3]
+
+    $form multi unset $name 1
+    lappend res [$form multi get $name]
+
+    $form multi unset $name 3
+    lappend res [$form multi get $name]
+
+    set res
+} -result [list {*}{
+    {}
+    0
+    {1 3}
+    0
+    1
+    3
+    {}
+}]
+
 #----------------------------------------
 # text
 

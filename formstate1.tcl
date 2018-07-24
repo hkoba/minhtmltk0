@@ -30,6 +30,10 @@ snit::type ::minhtmltk::formstate {
     variable myNameList {}
     variable myNameDict [dict create]
     
+    method myvar name {
+        myvar $name
+    }
+
     # 
     option -debug no
     method dvars {msg varName args} {
@@ -87,7 +91,7 @@ snit::type ::minhtmltk::formstate {
 	}
 	set is_array [dict get $myNameDict $name is_array]
 	if {$is_array} {
-	    $self array set $name $value
+	    $self multi set $name $value
 	} else {
 	    set fst_node [lindex [dict get $myNameDict $name nodeList] 0]
 	    set [$self node var $fst_node] $value
@@ -152,7 +156,7 @@ snit::type ::minhtmltk::formstate {
 	set dict [dict get $myNameDict $name]
 	set fst_node [lindex [dict get $dict nodeList] 0]
 	if {[dict get $dict is_array]} {
-	    set result [$self array get $name]
+	    set result [$self multi get $name]
 	    if {$outVar ne ""} {
 		return [llength $result]
 	    } else {
@@ -174,29 +178,60 @@ snit::type ::minhtmltk::formstate {
 	}
     }
 
-    method {array get} name {
+    method {multi forEach} {varNameList name valueList command} {
+        lassign $varNameList varNameVar choiceVar
+        upvar 1 $varNameVar varName
+        if {$choiceVar ne ""} {
+            upvar 1 $choiceVar choice
+        }
 	set arrayName [dict get $myNameDict $name array_name]
+        foreach choice $valueList {
+            set varName [set arrayName]($choice)
+            uplevel 1 $command
+        }
+    }
+
+    method {multi forAll} {varNameList name command} {
+        lassign $varNameList varNameVar choiceVar
+        upvar 1 $varNameVar varName
+        if {$choiceVar ne ""} {
+            upvar 1 $choiceVar choice
+        }
+	set arrayName [dict get $myNameDict $name array_name]
+	foreach choice [$self choicelist $name] {
+            set varName [set arrayName]($choice)
+            uplevel 1 $command
+	}
+    }
+
+    method {multi get} name {
 	set result {}
-	foreach value [$self choicelist $name] {
-	    if {[default [set arrayName]($value) 0]} {
+        $self multi forAll {var value} $name {
+	    if {[default $var 0]} {
 		lappend result $value
 	    }
 	}
 	set result
     }
 
-    method {array set} {name values} {
-	set arrayName [dict get $myNameDict $name array_name]
-	foreach choice [$self choicelist $name] {
-	    set [set arrayName]($choice) [expr {$choice in $values}]
-	}
+    method {multi set} {name valueList} {
+        $self multi forAll {var choice} $name {
+            set $var [expr {$choice in $valueList}]
+        }
     }
 
-    method test_all {name value args} {
-        set arrayName [dict get $myNameDict $name array_name]
-        foreach value [list $value {*}$args] {
-            if {![default [set arrayName]($value) 0]} {
-                return 0
+    method {multi unset} {name valueList} {
+        $self multi forEach {var choice} $name $valueList {
+            if {$choice in $valueList} {
+                set $var 0
+            }
+        }
+    }
+
+    method {multi test_all} {name value args} {
+        $self multi forEach {var choice} $name [list $value {*}$args] {
+            if {![default $var 0]} {
+                return -code return 0
             }
         }
         return 1
