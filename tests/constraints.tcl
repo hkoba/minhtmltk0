@@ -7,3 +7,7 @@ namespace eval tcltest {
     }
     namespace export *
 }
+
+proc iota1 {n} {
+    struct::list mapfor v [struct::list iota $n] {expr {$v+1}}
+}

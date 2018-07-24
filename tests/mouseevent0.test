@@ -33,10 +33,6 @@ test $P-init load -body {
 
 namespace import ::minhtmltk::utils::*
 
-proc iota1 {n} {
-    struct::list mapfor v [struct::list iota $n] {expr {$v+1}}
-}
-
 #========================================
 
 test $P-create "" -body {
