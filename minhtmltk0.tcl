@@ -230,6 +230,10 @@ if {![info level] && [info exists ::argv0]
 
     pack [minhtmltk .win {*}[minhtmltk::parsePosixOpts ::argv]] \
         -fill both -expand yes
+    
+    if {$::argv ne ""} {
+        puts [.win {*}$::argv]
+    }
 }
 
 list ::minhtmltk
