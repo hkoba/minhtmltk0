@@ -1,0 +1,65 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+package require struct::list
+
+set P minhtmltk
+set type ::$P
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+
+test $P-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+
+#----------------------------------------
+set testFile 001.html
+
+test $P-create-file-$testFile "" -body {
+    $type .ht -debug yes \
+        -file $testDir/html/001.html
+} -result .ht
+
+pack .ht
+
+test $P-result-$testFile "" -body {
+    [[.ht search h2] children] text
+} -result Hello!
+
+destroy .ht
+
+#----------------------------------------
+set testHtml {
+    <html>
+    <body>
+    <h2>World!</h2>
+    </body>
+    </html>
+}
+
+test $P-create-raw-html "" -body {
+    $type .ht -debug yes \
+        -html $testHtml
+} -result .ht
+
+pack .ht
+
+test $P-result-$testFile "" -body {
+    [[.ht search h2] children] text
+} -result World!
+
+
+tcltest::cleanupTests
