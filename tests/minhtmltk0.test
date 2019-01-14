@@ -23,7 +23,11 @@ test $P-init load -body {
 		[file rootname [file tail $abs]].tcl]
 } -result $type
 
+#----------------------------------------
+
 test $P-create "" -body {
+    if {[winfo exists .ht]} { rename .ht "" }
+
     $type .ht -debug yes
 } -result .ht
 

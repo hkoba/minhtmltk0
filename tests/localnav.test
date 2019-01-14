@@ -29,6 +29,8 @@ test $P-init load -body {
 set testFile 001.html
 
 test $P-create-file-$testFile "" -body {
+    if {[winfo exists .ht]} { rename .ht "" }
+
     $type .ht -debug yes \
         -file $testDir/html/001.html
 } -result .ht

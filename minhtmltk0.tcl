@@ -35,6 +35,9 @@ snit::widget minhtmltk {
 
     option -encoding ""
 
+    variable myLogHistory [list]
+    variable stateCurrentLog [list]
+
     typeconstructor {
         if {[ttk::style theme use] eq "default"} {
             ttk::style theme use clam
