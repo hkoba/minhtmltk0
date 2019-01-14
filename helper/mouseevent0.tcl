@@ -297,6 +297,9 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         foreach {event node} $evlist {
             lappend handlers {*}[$self node event list-handlers $node $event]
         }
+        if {$options(-debug-mouse-event) >= 2} {
+            puts stderr "(node event generatelist) => $handlers"
+        }
         $self node event handlelist $handlers
     }
 
@@ -325,6 +328,10 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
             set node [lindex $nspec end]
 
             if {![dict-getvar $stateTriggerDict $key $event cmdlist]} continue
+
+            if {$options(-debug-mouse-event) >= 3} {
+                puts "list-handlers($node $key $event) => cmdlist($cmdlist)"
+            }
 
 	    if {$node eq ""} {
 		set node [if {$startNode ne ""} {
@@ -370,11 +377,12 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     #========================================
     method {node event tag a click} node {
         if {[set href [$node attr -default "" href]] eq ""} return
-        
+
         if {[regexp ^\# $href]} {
             $self See $href
         } else {
-            puts stderr "Not yet implemented: href=$href"
+            # puts "loading $href from $node"
+            $self nav loadURI $href
         }
     }
 

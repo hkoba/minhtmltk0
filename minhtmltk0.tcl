@@ -67,7 +67,7 @@ snit::widget minhtmltk {
         $sw setwidget $myHtml
 
         $self configurelist $args
-        $self interactive
+        # $self interactive; # ← called from Reset (from replace_location_html)
 
         if {$stateLocation eq "" && $options(-home) ne ""} {
             $myURINavigator loadURI $options(-home)
