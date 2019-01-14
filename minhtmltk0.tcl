@@ -18,6 +18,8 @@ source [file dirname [info script]]/formstate1.tcl
 
 source [file dirname [info script]]/helper.tcl
 
+source [file dirname [info script]]/navigator/localnav.tcl
+
 snit::widget minhtmltk {
     ::minhtmltk::helper::start
 
@@ -25,7 +27,12 @@ snit::widget minhtmltk {
 
     component myHtml -inherit yes
     variable stateStyleList
-    
+
+    component myURINavigator -public nav
+    option -home ""
+    option -file ""
+    option -html ""
+
     option -encoding ""
 
     typeconstructor {
@@ -42,22 +49,50 @@ snit::widget minhtmltk {
 
     #========================================
     constructor args {
+
+        if {[set nav [from args -navigator ""]] ne ""} {
+            install myURINavigator using set nav
+        } else {
+            install myURINavigator \
+                using ::minhtmltk::navigator::localnav ${selfns}::navigator
+        }
+        $myURINavigator setwidget $win
+
         set sw [widget::scrolledwindow $win.sw \
                    -scrollbar [from args -scrollbar both]]
         install myHtml using html $sw.html
         $sw setwidget $myHtml
 
-        $self interactive {*}$args
+        $self configurelist $args
+        $self interactive
+
+        if {$stateLocation eq "" && $options(-home) ne ""} {
+            $myURINavigator loadURI $options(-home)
+        }
 
         pack $sw -fill both -expand yes
     }
-    
-    method interactive args {
-        set html [from args -html ""]
-        set file [from args -file ""]
-        
-        $self configurelist $args
-        
+
+    destructor {
+        if {$myURINavigator ne ""} {
+            after idle [list ${type}::safe_destroy $myURINavigator]
+        }
+    }
+    proc safe_destroy obj {
+        if {[info commands $obj] ne ""} {
+            rename $obj ""
+        }
+    }
+
+    onconfigure -file file {
+        $myURINavigator loadURI $file
+    }
+    onconfigure -html html {
+        $self replace_location_html "" $html
+    }
+
+    method interactive {} {
+
         $self install-html-handlers
         
         bindtags $myHtml [luniq [linsert-lsearch [bindtags $myHtml] . \
@@ -66,12 +101,6 @@ snit::widget minhtmltk {
         $self install-mouse-handlers
 
         $self install-keyboard-handlers
-
-        if {$html ne ""} {
-            $self replace_location_html $file $html
-        } elseif {$file ne ""} {
-            $self replace_location_html $file [$self read_file $file]
-        }
     }
     
     method html args {
@@ -106,6 +135,9 @@ snit::widget minhtmltk {
     }
 
     variable stateLocation ""
+    method location {} { set stateLocation }
+    method {state location} {} { set stateLocation }
+
     method replace_location_html {uri html} {
         $self Reset
         set stateLocation $uri

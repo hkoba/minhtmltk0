@@ -135,5 +135,20 @@ namespace eval ::minhtmltk::utils {
         set bt
     }
 
+    proc read_file {fn args} {
+        set fh [open $fn]
+        scope_guard fh [list close $fh]
+        if {$args ne ""} {
+            fconfigure $fh {*}$args
+        }
+        read $fh
+    }
+
+    proc scope_guard {varName command} {
+        upvar 1 $varName var
+        uplevel 1 [list trace add variable $varName unset \
+                       [list apply [list args $command]]]
+    }
+
     namespace export *
 }
