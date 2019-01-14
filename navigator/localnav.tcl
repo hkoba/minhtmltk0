@@ -15,10 +15,13 @@ snit::type ::minhtmltk::navigator::localnav {
         $self location-forget
     }
 
-    method loadURI {uri {nodeOrAtts {}}} {
-        set next [$self resolve $uri]
-        set html [$self read_text $next]
-        $myBrowser replace_location_html $next $html
+    method {scheme {} read_from} uriObj {
+        $self scheme file read_from $uriObj
+    }
+
+    method {scheme file read_from} uriObj {
+        set html [$self read_text [$uriObj get]]
+        $myBrowser replace_location_html [$uriObj get] $html
     }
 
     method read_text uri {

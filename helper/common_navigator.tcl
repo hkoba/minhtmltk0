@@ -6,10 +6,20 @@ snit::macro ::minhtmltk::helper::common_navigator {} {
 
     variable myHistoryList []
 
-    component myLocation -public location
-
     option -uri ""
     option -home ""
+
+    component myLocation -public location
+    # *         $uri resolve URI
+    # *         $uri load URI
+    # *
+    # *         $uri scheme
+    # *         $uri authority
+    # *         $uri path
+    # *         $uri query
+    # *         $uri fragment
+    # *
+    # *         $uri destroy
 
     method location-init {} {
         install myLocation using tkhtml::uri ""
@@ -46,6 +56,21 @@ snit::macro ::minhtmltk::helper::common_navigator {} {
         set base [tkhtml::uri $baseURI]
         ::minhtmltk::utils::scope_guard base [list $base destroy]
         $base resolve $uri
+    }
+
+    method loadURI {uri {nodeOrAtts {}}} {
+        # nextObj lives until end of this method scope.
+        $self parse-uri-as nextObj [$self resolve $uri]
+
+        $self scheme [$nextObj scheme] read_from $nextObj
+    }
+
+    method parse-uri-as {objVar uri} {
+        upvar 1 $objVar uriObj
+        set uriObj [tkhtml::uri $uri]
+        uplevel 1 \
+            [list ::minhtmltk::utils::scope_guard $objVar \
+                 [list $uriObj destroy]]
     }
 }
 
