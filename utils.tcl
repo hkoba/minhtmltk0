@@ -150,5 +150,15 @@ namespace eval ::minhtmltk::utils {
                        [list apply [list args $command]]]
     }
 
+    # From: https://wiki.tcl-lang.org/page/info
+    proc getBackTrace backTraceRef {
+        upvar 1 $backTraceRef backTrace
+
+        set startLevel [expr {[info level] - 2}]
+        for {set level 1} {$level <= $startLevel} {incr level} {
+            lappend backTrace [lindex [info level $level] 0]
+        }
+    }
+
     namespace export *
 }

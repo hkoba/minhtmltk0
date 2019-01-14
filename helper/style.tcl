@@ -11,7 +11,7 @@ snit::macro ::minhtmltk::helper::style {handledTagDictVar} {
     method {link-rel stylesheet add} node {
         if {[set href [$node attr -default "" href]] eq ""} return
 
-        $self style import-from author [$self location] $href
+        $self style import-from author [$self location get] $href
     }
 
     #
@@ -23,9 +23,9 @@ snit::macro ::minhtmltk::helper::style {handledTagDictVar} {
         regsub -- {-->\s*$} $data {} data
 
         if {[set src [from atts src ""]] ne ""} {
-            $self style import-from author [$self location] $src
+            $self style import-from author [$self location get] $src
         }
-        $self style add-from [$self location] $data
+        $self style add-from [$self location get] $data
     }
 
     method {style add-from} {uri style {parentid author}} {

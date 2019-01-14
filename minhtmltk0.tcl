@@ -29,8 +29,10 @@ snit::widget minhtmltk {
     variable stateStyleList
 
     component myURINavigator -public nav
-    option -home ""
-    option -file ""
+    delegate option -file to myURINavigator as -uri
+    delegate option -home to myURINavigator
+    delegate method location to myURINavigator
+
     option -html ""
 
     option -encoding ""
@@ -58,6 +60,12 @@ snit::widget minhtmltk {
         } else {
             install myURINavigator \
                 using ::minhtmltk::navigator::localnav ${selfns}::navigator
+            # puts "navigator is created!>>>"
+            # trace add command $myURINavigator delete \
+            #     [list apply {args {
+            #         getBackTrace bt
+            #         puts "navigator is deleted!<<<\nbacktrace=$bt"
+            #     }}]
         }
         $myURINavigator setwidget $win
 
@@ -69,27 +77,22 @@ snit::widget minhtmltk {
         $self configurelist $args
         # $self interactive; # ← called from Reset (from replace_location_html)
 
-        if {$stateLocation eq "" && $options(-home) ne ""} {
-            $myURINavigator loadURI $options(-home)
+        if {[$self location get] eq ""} {
+            $self nav gotoHome
         }
 
         pack $sw -fill both -expand yes
     }
 
     destructor {
-        if {$myURINavigator ne ""} {
-            after idle [list ${type}::safe_destroy $myURINavigator]
-        }
+        safe_destroy $myURINavigator
     }
     proc safe_destroy obj {
-        if {[info commands $obj] ne ""} {
+        if {$obj ne "" && [info commands $obj] ne ""} {
             rename $obj ""
         }
     }
 
-    onconfigure -file file {
-        $myURINavigator loadURI $file
-    }
     onconfigure -html html {
         $self replace_location_html "" $html
     }
@@ -137,13 +140,9 @@ snit::widget minhtmltk {
         set stateHtmlSource
     }
 
-    variable stateLocation ""
-    method location {} { set stateLocation }
-    method {state location} {} { set stateLocation }
-
     method replace_location_html {uri html} {
         $self Reset
-        set stateLocation $uri
+        $myURINavigator location load $uri
         $self parse -final $html
     }
 

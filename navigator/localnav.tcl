@@ -7,6 +7,14 @@ snit::type ::minhtmltk::navigator::localnav {
 
     ::minhtmltk::helper::common_navigator
 
+    constructor args {
+        $self location-init
+        $self configurelist $args
+    }
+    destructor {
+        $self location-forget
+    }
+
     method loadURI {uri {nodeOrAtts {}}} {
         set next [$self resolve $uri]
         set html [$self read_text $next]
