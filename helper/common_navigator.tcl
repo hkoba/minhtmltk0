@@ -73,5 +73,3 @@ snit::macro ::minhtmltk::helper::common_navigator {} {
                  [list $uriObj destroy]]
     }
 }
-
-

@@ -3,9 +3,13 @@
 
 package require snit
 
+source [file dirname [info script]]/scheme/file.tcl
+
 snit::type ::minhtmltk::navigator::localnav {
 
     ::minhtmltk::helper::common_navigator
+
+    ::minhtmltk::navigator::file_scheme
 
     constructor args {
         $self location-init
@@ -15,16 +19,4 @@ snit::type ::minhtmltk::navigator::localnav {
         $self location-forget
     }
 
-    method {scheme {} read_from} uriObj {
-        $self scheme file read_from $uriObj
-    }
-
-    method {scheme file read_from} uriObj {
-        set html [$self read_text [$uriObj get]]
-        $myBrowser replace_location_html [$uriObj get] $html
-    }
-
-    method read_text uri {
-        ::minhtmltk::utils::read_file $uri
-    }
 }
