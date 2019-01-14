@@ -140,10 +140,12 @@ snit::widget minhtmltk {
         set stateHtmlSource
     }
 
-    method replace_location_html {uri html} {
+    method replace_location_html {uri html {opts {}}} {
         $self Reset
         $myURINavigator location load $uri
         $self parse -final $html
+        $myURINavigator history [dict-default $opts history push]\
+            $uri
     }
 
     method Reset {} {
@@ -238,7 +240,9 @@ snit::widget minhtmltk {
         bind $win <KeyPress-Next>   [list $myHtml yview scroll  1 pages]
         bind $win <KeyPress-space>  [list $myHtml yview scroll  1 pages]
         bind $win <KeyPress-Prior>  [list $myHtml yview scroll -1 pages]
-	
+
+        bind $win <Alt-Right> [list $myURINavigator history go-offset +1]
+        bind $win <Alt-Left> [list $myURINavigator history go-offset -1]
     }
 
     #========================================

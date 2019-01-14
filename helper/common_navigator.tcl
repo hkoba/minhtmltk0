@@ -4,8 +4,6 @@ namespace eval ::minhtmltk::helper {}
 snit::macro ::minhtmltk::helper::common_navigator {} {
     component myBrowser
 
-    variable myHistoryList []
-
     option -uri ""
     option -home ""
 
@@ -58,11 +56,11 @@ snit::macro ::minhtmltk::helper::common_navigator {} {
         $base resolve $uri
     }
 
-    method loadURI {uri {nodeOrAtts {}}} {
+    method loadURI {uri args} {
         # nextObj lives until end of this method scope.
         $self parse-uri-as nextObj [$self resolve $uri]
 
-        $self scheme [$nextObj scheme] read_from $nextObj
+        $self scheme [$nextObj scheme] read_from $nextObj $args
     }
 
     method parse-uri-as {objVar uri} {
@@ -71,5 +69,42 @@ snit::macro ::minhtmltk::helper::common_navigator {} {
         uplevel 1 \
             [list ::minhtmltk::utils::scope_guard $objVar \
                  [list $uriObj destroy]]
+    }
+
+    #----------------------------------------
+    variable myHistoryList []
+    variable myHistoryPos -1
+
+    method {history push} uri {
+        # puts [list old-hist pos $myHistoryPos list $myHistoryList]
+        set lastPos [expr {[llength $myHistoryList] - 1}]
+        set nextPos [expr {$myHistoryPos + 1}]
+        if {$nextPos <= $lastPos} {
+            set myHistoryList [lreplace $myHistoryList $nextPos $lastPos\
+                                   $uri]
+        } else {
+            lappend myHistoryList $uri
+        }
+        set myHistoryPos [expr {[llength $myHistoryList] - 1}]
+        # puts [list new-hist pos $myHistoryPos list $myHistoryList]
+    }
+
+    method {history bypass} uri {}
+
+    method {history replace} uri {
+        error "Not yet impl"
+    }
+
+    # XXX: resume formstate!
+    method {history go-offset} {offset} {
+        # puts [list old-hist pos $myHistoryPos list $myHistoryList]
+        set lastPos [expr {[llength $myHistoryList] - 1}]
+        set nextPos [expr {$myHistoryPos + $offset}]
+        if {$nextPos >= 0 && $nextPos <= $lastPos} {
+            set myHistoryPos $nextPos
+            $self loadURI [lindex $myHistoryList $myHistoryPos] \
+                history bypass
+            # puts [list new-hist pos $myHistoryPos list $myHistoryList]
+        }
     }
 }
