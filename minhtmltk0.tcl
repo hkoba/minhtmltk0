@@ -183,9 +183,10 @@ snit::widget minhtmltk {
     ::minhtmltk::helper errorlogger
 
     set handledTags [dict create parse {} script {} node {}]
-    
+
     ::minhtmltk::helper form   handledTags
     ::minhtmltk::helper style  handledTags
+    ::minhtmltk::helper link   handledTags
     ::minhtmltk::helper anchor handledTags
 
     foreach kind [dict keys $handledTags] {
@@ -194,7 +195,6 @@ snit::widget minhtmltk {
 
     # To be handled
     list {
-        link
         button
         iframe menu
         base meta title object embed

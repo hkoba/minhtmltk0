@@ -63,5 +63,30 @@ test $P-result-$testFile "" -body {
     [[.ht search h2] children] text
 } -result World!
 
+#========================================
+set testFile 002.html
+# <style src="002.css">yyy</style>
+
+test $P-tag-style-$testFile "" -body {
+    if {[winfo exists .ht]} { rename .ht "" }
+
+    pack [$type .ht -debug yes \
+              -file $testDir/html/$testFile]
+
+    list [[.ht search h2] property background-color] \
+        [[.ht search h2] property color]
+} -result [list red white]
+
+set testFile 003.html
+# <link rel=stylesheet href="002.css"
+
+test $P-tag-link-stylesheet-$testFile "" -body {
+    .ht nav loadURI $testFile
+
+    list [[.ht search h2] property background-color] \
+        [[.ht search h2] property color]
+} -result [list red black]
+
+destroy .ht
 
 tcltest::cleanupTests

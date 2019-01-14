@@ -18,14 +18,25 @@ snit::type ::minhtmltk::navigator::localnav {
     }
 
     method loadURI {uri {nodeOrAtts {}}} {
-        if {[set curURI [$myBrowser location]] eq ""} {
-            set curURI [pwd]
-        }
-        set base [tkhtml::uri $curURI]
-        scope_guard base [list $base destroy]
-        set next [$base resolve $uri]
-        set html [read_file $next]
+        set next [$self resolve $uri]
+        set html [$self read_text $next]
         $myBrowser replace_location_html $next $html
     }
 
+    method resolve {uri {baseURI ""}} {
+        if {$baseURI eq ""} {
+            set baseURI [$myBrowser location]
+        }
+        if {$baseURI  eq ""} {
+            set baseURI [pwd]/
+        }
+        # puts stderr "baseURI = $baseURI"
+        set base [tkhtml::uri $baseURI]
+        scope_guard base [list $base destroy]
+        $base resolve $uri
+    }
+
+    method read_text uri {
+        read_file $uri
+    }
 }
