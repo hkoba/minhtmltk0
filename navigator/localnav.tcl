@@ -3,11 +3,13 @@
 
 package require snit
 
+source [file dirname [info script]]/common_macro.tcl
+
 source [file dirname [info script]]/scheme/file.tcl
 
 snit::type ::minhtmltk::navigator::localnav {
 
-    ::minhtmltk::taghelper::common_navigator
+    ::minhtmltk::navigator::common_macro
 
     ::minhtmltk::navigator::file_scheme
 
