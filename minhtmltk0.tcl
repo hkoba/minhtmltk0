@@ -35,6 +35,7 @@ snit::widget minhtmltk {
     option -script-type [list text/x-tcl text/tcl tcl]
 
     component myURINavigator -public nav
+    delegate option -uri to myURINavigator as -uri
     delegate option -file to myURINavigator as -uri
     delegate option -home to myURINavigator
     delegate method location to myURINavigator
