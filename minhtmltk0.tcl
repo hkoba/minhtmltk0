@@ -16,7 +16,7 @@ namespace eval ::minhtmltk {
 
 source [file dirname [info script]]/formstate1.tcl
 
-source [file dirname [info script]]/helper.tcl
+source [file dirname [info script]]/taghelper.tcl
 
 source [file dirname [info script]]/navigator/localnav.tcl
 
