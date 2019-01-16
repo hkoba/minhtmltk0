@@ -29,6 +29,7 @@ snit::widget minhtmltk {
     variable stateStyleList
 
     component myURINavigator -public nav
+    delegate option -uri to myURINavigator as -uri
     delegate option -file to myURINavigator as -uri
     delegate option -home to myURINavigator
     delegate method location to myURINavigator
