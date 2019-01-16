@@ -21,7 +21,7 @@ source [file dirname [info script]]/taghelper.tcl
 source [file dirname [info script]]/navigator/localnav.tcl
 
 snit::widget minhtmltk {
-    ::minhtmltk::helper::start
+    ::minhtmltk::taghelper::start
 
     typevariable ourClass Minhtmltk
 
@@ -181,14 +181,14 @@ snit::widget minhtmltk {
     # HTML Tag handling
     #========================================
 
-    ::minhtmltk::helper errorlogger
+    ::minhtmltk::taghelper errorlogger
 
     set handledTags [dict create parse {} script {} node {}]
 
-    ::minhtmltk::helper form   handledTags
-    ::minhtmltk::helper style  handledTags
-    ::minhtmltk::helper link   handledTags
-    ::minhtmltk::helper anchor handledTags
+    ::minhtmltk::taghelper form   handledTags
+    ::minhtmltk::taghelper style  handledTags
+    ::minhtmltk::taghelper link   handledTags
+    ::minhtmltk::taghelper anchor handledTags
 
     foreach kind [dict keys $handledTags] {
         option -handle-$kind [dict get $handledTags $kind]
@@ -223,7 +223,7 @@ snit::widget minhtmltk {
     # mouse event handling
     #========================================
 
-    ::minhtmltk::helper mouseevent0
+    ::minhtmltk::taghelper mouseevent0
     
     #========================================
     # keyboard event handling

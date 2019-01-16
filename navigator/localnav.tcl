@@ -7,7 +7,7 @@ source [file dirname [info script]]/scheme/file.tcl
 
 snit::type ::minhtmltk::navigator::localnav {
 
-    ::minhtmltk::helper::common_navigator
+    ::minhtmltk::taghelper::common_navigator
 
     ::minhtmltk::navigator::file_scheme
 

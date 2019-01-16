@@ -1,8 +1,8 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::taghelper {}
 
-snit::macro ::minhtmltk::helper::mouseevent0 {} {
+snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
 
     #========================================
     # mouse event handling, salvaged and extended from ::hv3::hv3::mousemanager

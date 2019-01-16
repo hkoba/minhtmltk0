@@ -1,8 +1,8 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::taghelper {}
 
-snit::macro ::minhtmltk::helper::nodeutil {} {
+snit::macro ::minhtmltk::taghelper::nodeutil {} {
 
     #========================================
     # node utils

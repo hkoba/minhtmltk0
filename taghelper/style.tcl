@@ -1,8 +1,8 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::taghelper {}
 
-snit::macro ::minhtmltk::helper::style {handledTagDictVar} {
+snit::macro ::minhtmltk::taghelper::style {handledTagDictVar} {
 
     upvar 1 $handledTagDictVar handledTagDict
     dict lappend handledTagDict script style

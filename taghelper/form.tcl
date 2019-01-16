@@ -1,8 +1,8 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::taghelper {}
 
-snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
+snit::macro ::minhtmltk::taghelper::form {handledTagDictVar} {
 
     upvar 1 $handledTagDictVar handledTagDict
     dict lappend handledTagDict parse form
@@ -11,8 +11,8 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         textarea \
         select
     
-    ::minhtmltk::helper nodeutil
-    ::minhtmltk::helper errorlogger
+    ::minhtmltk::taghelper nodeutil
+    ::minhtmltk::taghelper errorlogger
 
     method {node path} node {
         if {[set id [$node attr -default "" id]] eq ""} {
