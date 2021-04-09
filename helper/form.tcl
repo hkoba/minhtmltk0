@@ -151,10 +151,18 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
                                  $t get 1.0 end-1c
                              }} $t] \
                              setter [list {{t value} {
+                                 set state [$t cget -state]
+                                 $t configure -state normal
                                  $t delete 1.0 end
                                  $t insert end $value
+                                 $t configure -state $state
                              }} $t]]
                 set $var [$self innerTextPre $node]
+                
+                if {[$node attr -default no readonly] ne "no"
+                    || [$node attr -default no disabled] ne "no"} {
+                    $t configure -state disabled -undo no
+                }
             }
         }
     }
