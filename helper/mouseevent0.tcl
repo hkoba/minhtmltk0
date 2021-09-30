@@ -17,6 +17,8 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     variable stateActiveNodes -array []
 
     method Press {w x y} {
+        focus $w
+
         adjust-coords-to $myHtml $w x y
         set nodelist [$myHtml node $x $y]
         # XXX: Selection handling, and its prevention
