@@ -182,35 +182,40 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
     method {add select-single} {path selNode form args} {
         set name [$selNode attr -default "" name]
         lassign [$self form collect options $selNode] \
-            nodeDefs labelList selected
+            nodeDefs labelList selected valueList
 
-        $form node add single $selNode [dict create name $name] \
-            getter [list {{path form name} {
-                lindex [$form choicelist $name] \
-                    [$path current]
-            }} $path $form $name] \
-            setter [list {{path form name value} {
-                set pos [lsearch -exact [$form choicelist $name] $value]
+        set var [$form node add single $selNode [dict create name $name]]
+        set labelVar ${var}_label
+
+        $form node trace configure $selNode \
+            setter [list {{path form name labelVar labelList value} {
+                set valueList [$form choicelist $name]
+                set pos [lsearch -exact $valueList $value]
                 if {$pos >= 0} {
-                    $path current $pos
+                    set $labelVar [lindex $labelList $pos]
                 }
-            }} $path $form $name]
+            }} $path $form $name $labelVar $labelList]
 
         foreach spec $nodeDefs {
             lassign $spec node value
             $form node add single $node \
                 [dict create name $name value $value]
         }
-        ttk::combobox $path -state readonly -values $labelList
-        bind $path <<ComboboxSelected>> \
-            [list $form sync-trace scalar $selNode [$form node var $selNode]]
 
+        set menu $path.menu
+        menubutton $path -textvariable $labelVar -indicatoron 1 -menu $menu \
+            -relief raised -highlightthickness 1 -anchor c \
+            -direction flush
+        menu $menu -tearoff 0
+        foreach value $valueList label $labelList {
+            $menu add radiobutton -variable $var -label $label -value $value
+        }
         if {$labelList eq ""} {
             return
         } elseif {$selected ne ""} {
-            $path current $selected
+            set $var [lsearch -exact $valueList $selected]
         } else {
-            $path current 0
+            set $var [lindex $valueList 0]
         }
     }
 
@@ -252,6 +257,7 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
         set name [$selNode attr -default "" name]
         set nodeDefs {}
         set labelList {}
+        set valueList {}
         set selected {}
         set i -1
         foreach node [$self search option -root $selNode] {
@@ -267,12 +273,13 @@ snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
             } else {
                 set label
             }]
+            lappend valueList $value
             lappend nodeDefs [list $node $value]
             if {[$node attr -default no selected] ne "no"} {
                 lappend selected $i
             }
         }
-        list $nodeDefs $labelList $selected
+        list $nodeDefs $labelList $selected $valueList
     }
 
     #----------------------------------------
