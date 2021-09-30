@@ -299,13 +299,21 @@ snit::type ::minhtmltk::formstate {
 	    }
 	}
 
+        if {$args ne ""} {
+            $self node trace configure $node {*}$args
+        }
+
+	$self node var $node
+    }
+
+    method {node trace configure} {node args} {
+        set var [$self node var $node]
+        set name [$self node name $node]
         set curTraceList [trace info variable $var]
-        foreach {meth trace} {
-            getter read
-            setter write
-        } {
+
+        foreach {meth cmd} $args {
+            set trace [dict get {getter read setter write} $meth]
             # This [from args] removes getter/setter spec from $args.
-            if {[set cmd [from args $meth ""]] eq ""} continue
             if {[llength [lindex $cmd 0]] != 2} {
                 error "Node $meth must be an list of LAMBDA+ARGS... (of apply)!"
             }
@@ -318,16 +326,12 @@ snit::type ::minhtmltk::formstate {
                 trace add variable $array_name $trace \
                     [list $self do-trace array $trace $node]
             } else {
-                trace add variable $var $trace \
+                     trace add variable $var $trace \
                     [list $self do-trace scalar $trace $node $var]
             }
         }
-
-        if {[llength $args]} {
-            error "Unknown node arguments: $args"
-        }
-	$self node var $node
     }
+
     method {sync-trace scalar} {node varName} {
         set $varName [set $varName]
     }
@@ -382,6 +386,9 @@ snit::type ::minhtmltk::formstate {
     }
 
     method {node count} {} {dict size $myNodeDict}
+    method {node name} {node} {
+        dict get $myNodeDict $node name
+    }
     method {node intern} {kind node name valueVar attr} {
         upvar 1 $valueVar value
 	if {[dict exists $myNodeDict $node]} {
