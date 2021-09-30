@@ -49,6 +49,7 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         foreach node [array names stateActiveNodes] {
             $node dynamic clear active
             lappend evlist mouseup $node
+            lappend nodelist $node
         }
         array unset stateActiveNodes
         
@@ -381,6 +382,7 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     }
 
     method {node event tag label click} node {
+        # puts [list click label [$self innerTextPre $node]]
         set inputs [if {[set id [$node attr -default "" for]] ne ""} {
             # <label for="id">
             
