@@ -42,6 +42,8 @@ test $P-create "" -body {
 #========================================
 # 
 
+pack .ht -fill both -expand yes
+
 incr D
 test $P-$D-ready-eager "ready (eager)" -body {
     
@@ -258,7 +260,7 @@ test $P-$D-active-[incr I] "h2:active" -body {
 
 incr D
 .ht Reset
-test $P-$D-click-[incr I] "label click => checkbox/radio" -body {
+test $P-$D-labelclick-[incr I] "label click => checkbox/radio" -body {
     
     .ht parse -final {
 	<form>
@@ -291,7 +293,34 @@ test $P-$D-click-[incr I] "label click => checkbox/radio" -body {
 
 incr D
 .ht Reset
-test $P-$D-submit-[incr I] "submit" -body {
+
+test $P-$D-labelclick-[incr I] "label click with tagged elem" -body {
+
+    .ht parse -final {
+        <form>
+        <label><input type="checkbox" name="q" value="1">value 1</label>
+        <label><input type="checkbox" name="q" value="2"><small>value 2</small></label>
+        </form>
+    }
+
+    update idletask
+
+    # XXX: TODO font size abstraction
+    .ht Press   .ht.sw.html 52 23
+    .ht Release .ht.sw.html 52 23
+
+    .ht Press   .ht.sw.html 122 23
+    .ht Release .ht.sw.html 123 23
+
+    set form [.ht form get 0]
+    $form get_all
+} -result {q {1 2}}
+
+#========================================
+
+incr D
+.ht Reset
+test $P-$D-submit-[incr I] "(global) on submit" -body {
     
     .ht parse -final {
 	<form name="nav">
