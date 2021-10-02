@@ -2,10 +2,9 @@
 
 namespace eval ::minhtmltk::helper {}
 
-snit::macro ::minhtmltk::helper::style {handledTagDictVar} {
+::minhtmltk::helper::add script style
 
-    upvar 1 $handledTagDictVar handledTagDict
-    dict lappend handledTagDict script style
+snit::macro ::minhtmltk::helper::style {} {
 
     #
     # <script>

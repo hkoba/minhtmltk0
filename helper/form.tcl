@@ -2,15 +2,13 @@
 
 namespace eval ::minhtmltk::helper {}
 
-snit::macro ::minhtmltk::helper::form {handledTagDictVar} {
+::minhtmltk::helper::add parse form
+::minhtmltk::helper::add node  input by-input-type
+::minhtmltk::helper::add node  textarea
+::minhtmltk::helper::add node  select
 
-    upvar 1 $handledTagDictVar handledTagDict
-    dict lappend handledTagDict parse form
-    dict lappend handledTagDict node \
-        [list input by-input-type]\
-        textarea \
-        select
-    
+snit::macro ::minhtmltk::helper::form {} {
+
     ::minhtmltk::helper nodeutil
     ::minhtmltk::helper errorlogger
 

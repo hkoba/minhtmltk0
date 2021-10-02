@@ -147,15 +147,9 @@ snit::widget minhtmltk {
 
     ::minhtmltk::helper errorlogger
 
-    set handledTags [dict create parse {} script {} node {}]
-    
-    ::minhtmltk::helper form   handledTags
-    ::minhtmltk::helper style  handledTags
-    ::minhtmltk::helper anchor handledTags
-
-    foreach kind [dict keys $handledTags] {
-        option -handle-$kind [dict get $handledTags $kind]
-    }
+    ::minhtmltk::helper form
+    ::minhtmltk::helper style
+    ::minhtmltk::helper anchor
 
     # To be handled
     list {
@@ -166,20 +160,16 @@ snit::widget minhtmltk {
     }
 
     method install-html-handlers {} {
-        
-        foreach kind {parse script node} {
-            foreach spec $options(-handle-$kind) {
-                lassign $spec tag handler
-                if {$handler ne ""} {
-                    set meth [list add $handler]
-                } else {
-                    set meth [list add $kind $tag]
-                }
-                if {![llength [$self info methods $meth]]} {
-                    error "Can't find tag handler for $tag"
-                }
-                $myHtml handler $kind $tag [list $self logged {*}$meth]
+        foreach {kind tag handler} [::minhtmltk::helper::handledTags] {
+            if {$handler ne ""} {
+                set meth [list add $handler]
+            } else {
+                set meth [list add $kind $tag]
             }
+            if {![llength [$self info methods $meth]]} {
+                error "Can't find tag handler for $tag"
+            }
+            $myHtml handler $kind $tag [list $self logged {*}$meth]
         }
     }
 
@@ -231,6 +221,12 @@ if {![info level] && [info exists ::argv0]
     pack [minhtmltk .win {*}[minhtmltk::parsePosixOpts ::argv]] \
         -fill both -expand yes
     
+    snit::method minhtmltk Open {file args} {
+        $self configure {*}$args
+        $self replace_location_html $file \
+            [$self read_file $file]
+    }
+
     if {$::argv ne ""} {
         puts [.win {*}$::argv]
     }

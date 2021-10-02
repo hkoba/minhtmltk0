@@ -1,6 +1,25 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::helper {
+    ::variable ourHandledTags [dict create parse {} script {} node {}]
+    proc add {kind tag {handler ""}} {
+        ::variable ourHandledTags
+        dict update ourHandledTags $kind tagDict {
+            dict set tagDict $tag $handler
+        }
+    }
+    proc handledTags {} {
+        ::variable ourHandledTags
+        set result []
+        foreach kind [dict keys $ourHandledTags] {
+            foreach tag [dict keys [dict get $ourHandledTags $kind]] {
+                set handler [dict get $ourHandledTags $kind $tag]
+                lappend result $kind $tag $handler
+            }
+        }
+        set result
+    }
+}
 
 #
 # ::minhtmltk::helper is a collection of snit::macros to build up minhtmltk.

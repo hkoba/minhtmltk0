@@ -2,11 +2,10 @@
 
 namespace eval ::minhtmltk::helper {}
 
-snit::macro ::minhtmltk::helper::anchor {handledTagDictVar} {
+::minhtmltk::helper::add node a
 
-    upvar 1 $handledTagDictVar handledTagDict
-    dict lappend handledTagDict node a
-    
+snit::macro ::minhtmltk::helper::anchor {} {
+
     # <a>
     method {add node a} node {
         if {[$node attr -default "" href] eq ""} return
