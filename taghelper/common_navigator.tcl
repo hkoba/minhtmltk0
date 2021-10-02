@@ -1,7 +1,7 @@
 # -*- mode: tcl; coding: utf-8 -*-
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::taghelper {}
 
-snit::macro ::minhtmltk::helper::common_navigator {} {
+snit::macro ::minhtmltk::taghelper::common_navigator {} {
     component myBrowser
 
     option -uri ""

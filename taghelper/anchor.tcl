@@ -1,10 +1,10 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::taghelper {}
 
-::minhtmltk::helper::add node a
+::minhtmltk::taghelper::add node a
 
-snit::macro ::minhtmltk::helper::anchor {} {
+snit::macro ::minhtmltk::taghelper::anchor {} {
 
     # <a>
     method {add node a} node {

@@ -1,6 +1,6 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {
+namespace eval ::minhtmltk::taghelper {
     ::variable ourHandledTags [dict create parse {} script {} node {}]
     proc add {kind tag {handler ""}} {
         ::variable ourHandledTags
@@ -22,7 +22,7 @@ namespace eval ::minhtmltk::helper {
 }
 
 #
-# ::minhtmltk::helper is a collection of snit::macros to build up minhtmltk.
+# ::minhtmltk::taghelper is a collection of snit::macros to build up minhtmltk.
 # Although these APIs are still evolving, some of these macros might be
 # reused to another tkhtml3 project.
 #
@@ -32,7 +32,7 @@ namespace eval ::minhtmltk::helper {
 # snit::macros dont have individual tcltests!
 #
 
-snit::macro ::minhtmltk::helper::start {} {
+snit::macro ::minhtmltk::taghelper::start {} {
     upvar 1 __helpers_installed installed
     if {[info exists installed]} {
         unset installed
@@ -40,14 +40,14 @@ snit::macro ::minhtmltk::helper::start {} {
     array set installed {}
 }
 
-snit::macro ::minhtmltk::helper {helper args} {
+snit::macro ::minhtmltk::taghelper {helper args} {
     upvar 1 __helpers_installed installed
     if {![info exists installed]} {
         array set installed {}
     }
     set vn installed($helper)
     if {[info exists $vn]} continue
-    uplevel 1 [list ::minhtmltk::helper::${helper} {*}$args]
+    uplevel 1 [list ::minhtmltk::taghelper::${helper} {*}$args]
     set $vn 1
 }
 

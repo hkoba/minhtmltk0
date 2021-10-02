@@ -1,16 +1,16 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::taghelper {}
 
-::minhtmltk::helper::add parse form
-::minhtmltk::helper::add node  input by-input-type
-::minhtmltk::helper::add node  textarea
-::minhtmltk::helper::add node  select
+::minhtmltk::taghelper::add parse form
+::minhtmltk::taghelper::add node  input by-input-type
+::minhtmltk::taghelper::add node  textarea
+::minhtmltk::taghelper::add node  select
 
-snit::macro ::minhtmltk::helper::form {} {
+snit::macro ::minhtmltk::taghelper::form {} {
 
-    ::minhtmltk::helper nodeutil
-    ::minhtmltk::helper errorlogger
+    ::minhtmltk::taghelper nodeutil
+    ::minhtmltk::taghelper errorlogger
 
     method {node path} node {
         if {[set id [$node attr -default "" id]] eq ""} {

@@ -1,10 +1,10 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::taghelper {}
 
-::minhtmltk::helper::add script style
+::minhtmltk::taghelper::add script style
 
-snit::macro ::minhtmltk::helper::style {} {
+snit::macro ::minhtmltk::taghelper::style {} {
 
     # <link rel=stylesheet>
     method {link-rel stylesheet add} node {

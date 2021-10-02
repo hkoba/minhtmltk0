@@ -1,6 +1,6 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-::minhtmltk::helper::add script script
+::minhtmltk::taghelper::add script script
 
 snit::method ::minhtmltk {add script script} {atts body} {
 

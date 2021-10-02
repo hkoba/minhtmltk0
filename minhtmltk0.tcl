@@ -16,12 +16,12 @@ namespace eval ::minhtmltk {
 
 source [file dirname [info script]]/formstate1.tcl
 
-source [file dirname [info script]]/helper.tcl
+source [file dirname [info script]]/taghelper.tcl
 
 source [file dirname [info script]]/navigator/localnav.tcl
 
 snit::widget minhtmltk {
-    ::minhtmltk::helper::start
+    ::minhtmltk::taghelper::start
 
     typevariable ourClass Minhtmltk
 
@@ -187,12 +187,12 @@ snit::widget minhtmltk {
     # HTML Tag handling
     #========================================
 
-    ::minhtmltk::helper errorlogger
+    ::minhtmltk::taghelper errorlogger
 
-    ::minhtmltk::helper form
-    ::minhtmltk::helper style
-    ::minhtmltk::helper anchor
-    ::minhtmltk::helper link
+    ::minhtmltk::taghelper form
+    ::minhtmltk::taghelper style
+    ::minhtmltk::taghelper anchor
+    ::minhtmltk::taghelper link
 
     # To be handled
     list {
@@ -202,7 +202,7 @@ snit::widget minhtmltk {
     }
 
     method install-html-handlers {} {
-        foreach {kind tag handler} [::minhtmltk::helper::handledTags] {
+        foreach {kind tag handler} [::minhtmltk::taghelper::handledTags] {
             if {$handler ne ""} {
                 set meth [list add $handler]
             } else {
@@ -221,7 +221,7 @@ snit::widget minhtmltk {
     # mouse event handling
     #========================================
 
-    ::minhtmltk::helper mouseevent0
+    ::minhtmltk::taghelper mouseevent0
     
     #========================================
     # keyboard event handling

@@ -1,10 +1,10 @@
 # -*- mode: tcl; coding: utf-8 -*-
 
-namespace eval ::minhtmltk::helper {}
+namespace eval ::minhtmltk::taghelper {}
 
-::minhtmltk::helper::add node link
+::minhtmltk::taghelper::add node link
 
-snit::macro ::minhtmltk::helper::link {} {
+snit::macro ::minhtmltk::taghelper::link {} {
 
     # <link> is handled via node interface
     method {add node link} node {
