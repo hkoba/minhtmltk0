@@ -121,6 +121,7 @@ namespace eval ::minhtmltk::utils {
     }
 
     # Derived from: http://wiki.tcl.tk/1043
+    # (https://wiki.tcl-lang.org/page/info)
     proc getBacktrace {{uplevel 0}} {
         set bt []
         set level [expr {[info level] - 2 - $uplevel}]

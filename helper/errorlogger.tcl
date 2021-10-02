@@ -6,36 +6,34 @@ snit::macro ::minhtmltk::helper::errorlogger {} {
     #========================================
     # logging... hmm...
     variable stateParseErrors ""
-    option -debug no
+    option -debug 0
+    option -debug-fh stderr
+    option -logger-exclude {}
     method logged args {
         set rc [catch {
             $self {*}$args
         } error]
         if {$rc} {
-            $self error add [list error $error $::errorInfo]
+            puts $error
+            $self logger error $error $::errorInfo
         }
     }
-    method logged-apply {lambda args} {
-        set rc [catch {
-            apply $lambda {*}$args
-        } error]
-        if {$rc} {
-            $self error add [list error $error $::errorInfo]
-        }
-    }
-    method {error get} {} {
+    method {logger get} {} {
         set stateParseErrors
     }
-    method {error add} error {
-        lappend stateParseErrors $error
-        if {$options(-debug)} {
-            lassign $error kind summary trace
-            puts stderr "$kind $summary"
-            puts stderr $trace
-        }
+    method {logger error} {message {detail ""}} {
+        $self logger add error $message $detail
     }
-    method {error raise} error {
-        lappend stateParseErrors $error
-        error $error
+    method {logger log} {message {detail ""}} {
+        $self logger add log $message $detail
+    }
+    method {logger add} {kind message {detail ""}} {
+        lappend stateParseErrors [list $kind $message $detail]
+        if {! $options(-debug)} return
+        if {[dict exists $options(-logger-exclude) $kind]} return
+        if {$options(-debug-fh) ne ""} {
+            puts $options(-debug-fh) "$kind $message"
+            puts $options(-debug-fh) $detail
+        }
     }
 }

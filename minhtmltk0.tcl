@@ -25,8 +25,11 @@ snit::widget minhtmltk {
 
     component myHtml -inherit yes
     variable stateStyleList
-    
+
     option -encoding ""
+
+    # Used from include/script-tag.tcl, to expose custom $self to tcl <script>
+    option -script-self ""
 
     typeconstructor {
         if {[ttk::style theme use] eq "default"} {
@@ -169,7 +172,9 @@ snit::widget minhtmltk {
             if {![llength [$self info methods $meth]]} {
                 error "Can't find tag handler for $tag"
             }
-            $myHtml handler $kind $tag [list $self logged {*}$meth]
+            set cmd [list handler $kind $tag [list $self logged {*}$meth]]
+            # puts $cmd
+            $myHtml {*}$cmd
         }
     }
 
