@@ -1,0 +1,92 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+package require struct::list
+
+set P minhtmltk
+set type ::$P
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+
+test $P-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+
+#----------------------------------------
+set testFile 001.html
+
+test $P-create-file-$testFile "" -body {
+    if {[winfo exists .ht]} { rename .ht "" }
+
+    $type .ht -debug yes \
+        -file $testDir/html/001.html
+} -result .ht
+
+pack .ht
+
+test $P-result-$testFile "" -body {
+    [[.ht search h2] children] text
+} -result Hello!
+
+destroy .ht
+
+#----------------------------------------
+set testHtml {
+    <html>
+    <body>
+    <h2>World!</h2>
+    </body>
+    </html>
+}
+
+test $P-create-raw-html "" -body {
+    $type .ht -debug yes \
+        -html $testHtml
+} -result .ht
+
+pack .ht
+
+test $P-result-$testFile "" -body {
+    [[.ht search h2] children] text
+} -result World!
+
+#========================================
+set testFile 002.html
+# <style src="002.css">yyy</style>
+
+test $P-tag-style-$testFile "" -body {
+    if {[winfo exists .ht]} { rename .ht "" }
+
+    pack [$type .ht -debug yes \
+              -file $testDir/html/$testFile]
+
+    list [[.ht search h2] property background-color] \
+        [[.ht search h2] property color]
+} -result [list red white]
+
+set testFile 003.html
+# <link rel=stylesheet href="002.css"
+
+test $P-tag-link-stylesheet-$testFile "" -body {
+    .ht nav loadURI $testFile
+
+    list [[.ht search h2] property background-color] \
+        [[.ht search h2] property color]
+} -result [list red black]
+
+destroy .ht
+
+tcltest::cleanupTests

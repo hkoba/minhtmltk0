@@ -18,6 +18,8 @@ source [file dirname [info script]]/formstate1.tcl
 
 source [file dirname [info script]]/helper.tcl
 
+source [file dirname [info script]]/navigator/localnav.tcl
+
 snit::widget minhtmltk {
     ::minhtmltk::helper::start
 
@@ -31,6 +33,18 @@ snit::widget minhtmltk {
     # Used from include/script-tag.tcl, to expose custom $self to tcl <script>
     option -script-self ""
     option -script-type [list text/x-tcl text/tcl tcl]
+
+    component myURINavigator -public nav
+    delegate option -file to myURINavigator as -uri
+    delegate option -home to myURINavigator
+    delegate method location to myURINavigator
+
+    option -html ""
+
+    option -encoding ""
+
+    variable myLogHistory [list]
+    variable stateCurrentLog [list]
 
     typeconstructor {
         if {[ttk::style theme use] eq "default"} {
@@ -46,22 +60,51 @@ snit::widget minhtmltk {
 
     #========================================
     constructor args {
+
+        if {[set nav [from args -navigator ""]] ne ""} {
+            install myURINavigator using set nav
+        } else {
+            install myURINavigator \
+                using ::minhtmltk::navigator::localnav ${selfns}::navigator
+            # puts "navigator is created!>>>"
+            # trace add command $myURINavigator delete \
+            #     [list apply {args {
+            #         getBackTrace bt
+            #         puts "navigator is deleted!<<<\nbacktrace=$bt"
+            #     }}]
+        }
+        $myURINavigator setwidget $win
+
         set sw [widget::scrolledwindow $win.sw \
                    -scrollbar [from args -scrollbar both]]
         install myHtml using html $sw.html
         $sw setwidget $myHtml
 
-        $self interactive {*}$args
+        $self configurelist $args
+        # $self interactive; # ← called from Reset (from replace_location_html)
+
+        if {[$self location get] eq ""} {
+            $self nav gotoHome
+        }
 
         pack $sw -fill both -expand yes
     }
-    
-    method interactive args {
-        set html [from args -html ""]
-        set file [from args -file ""]
-        
-        $self configurelist $args
-        
+
+    destructor {
+        safe_destroy $myURINavigator
+    }
+    proc safe_destroy obj {
+        if {$obj ne "" && [info commands $obj] ne ""} {
+            rename $obj ""
+        }
+    }
+
+    onconfigure -html html {
+        $self replace_location_html "" $html
+    }
+
+    method interactive {} {
+
         $self install-html-handlers
         
         bindtags $myHtml [luniq [linsert-lsearch [bindtags $myHtml] . \
@@ -70,12 +113,6 @@ snit::widget minhtmltk {
         $self install-mouse-handlers
 
         $self install-keyboard-handlers
-
-        if {$html ne ""} {
-            $self replace_location_html $file $html
-        } elseif {$file ne ""} {
-            $self replace_location_html $file [$self read_file $file]
-        }
     }
     
     method html args {
@@ -109,11 +146,12 @@ snit::widget minhtmltk {
         set stateHtmlSource
     }
 
-    variable stateLocation ""
-    method replace_location_html {uri html} {
+    method replace_location_html {uri html {opts {}}} {
         $self Reset
-        set stateLocation $uri
+        $myURINavigator location load $uri
         $self parse -final $html
+        $myURINavigator history [dict-default $opts history push]\
+            $uri
     }
 
     method Reset {} {
@@ -154,10 +192,10 @@ snit::widget minhtmltk {
     ::minhtmltk::helper form
     ::minhtmltk::helper style
     ::minhtmltk::helper anchor
+    ::minhtmltk::helper link
 
     # To be handled
     list {
-        link
         button
         iframe menu
         base meta title object embed
@@ -200,7 +238,9 @@ snit::widget minhtmltk {
         bind $win <KeyPress-Next>   [list $myHtml yview scroll  1 pages]
         bind $win <KeyPress-space>  [list $myHtml yview scroll  1 pages]
         bind $win <KeyPress-Prior>  [list $myHtml yview scroll -1 pages]
-	
+
+        bind $win <Alt-Right> [list $myURINavigator history go-offset +1]
+        bind $win <Alt-Left> [list $myURINavigator history go-offset -1]
     }
 
     #========================================
