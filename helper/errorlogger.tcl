@@ -18,6 +18,7 @@ snit::macro ::minhtmltk::helper::errorlogger {} {
             $self logger error $error $::errorInfo
         }
     }
+    method {error get} {} {$self logger get}
     method {logger get} {} {
         set stateParseErrors
     }
