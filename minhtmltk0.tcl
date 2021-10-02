@@ -30,6 +30,7 @@ snit::widget minhtmltk {
 
     # Used from include/script-tag.tcl, to expose custom $self to tcl <script>
     option -script-self ""
+    option -script-type [list text/x-tcl text/tcl tcl]
 
     typeconstructor {
         if {[ttk::style theme use] eq "default"} {

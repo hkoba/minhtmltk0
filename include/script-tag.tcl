@@ -4,8 +4,10 @@
 
 snit::method ::minhtmltk {add script script} {atts body} {
 
-    if {[dict exists $atts type]
-        && [dict get $atts type] in {"text/x-tcl" "text/tcl" "tcl"}} {
+    if {$options(-script-type) eq ""
+        ||
+        [dict exists $atts type]
+        && [dict get $atts type] in $options(-script-type)} {
         set rc [catch {
             set me [if {$options(-script-self) ne ""} {
                 set options(-script-self)
