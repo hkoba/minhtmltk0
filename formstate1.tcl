@@ -270,13 +270,11 @@ snit::type ::minhtmltk::formstate {
 	    [set name [dict-cut attr name ""]]\
 	    value \
 	    $attr
-	$self dvars "node add" myNodeDict
 
 	dict with myNodeDict $node {
 	    switch $kind {
 		single {
 		    set var ${selfns}::_S[$self add-name-of $node $name]
-		    $self dvars "after add-name-of" myNameDict
                     if {$has_value} {
                         $self add-choice-of $node $name $value
                     }
@@ -361,6 +359,7 @@ snit::type ::minhtmltk::formstate {
 					   choiceList [list] \
 					   choiceDict [dict create] \
 					   is_array $_is_array \
+                                           id [dict size $myNameDict]\
 					  ]
 	} else {
 	    dict with myNameDict $name {
@@ -370,7 +369,7 @@ snit::type ::minhtmltk::formstate {
 		lappend nodeList $node
 	    }
 	}
-	dict size $myNameDict
+	dict get $myNameDict $name id
     }
     method add-choice-of {node name value} {
 	dict with myNameDict $name {

@@ -14,7 +14,6 @@ snit::macro ::minhtmltk::helper::errorlogger {} {
             $self {*}$args
         } error]
         if {$rc} {
-            puts $error
             $self logger error $error $::errorInfo
         }
     }

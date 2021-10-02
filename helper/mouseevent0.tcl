@@ -14,7 +14,7 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     # (at least currently).
 
     variable stateHoverNodes -array []
-    variable stateActiveNodes -array []
+    variable stateActiveNodes [dict create]
 
     method Press {w x y} {
         focus $w
@@ -26,12 +26,12 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
         foreach startNode $nodelist {
             set startNode [parent-of-textnode $startNode]
             for-upward-node node $startNode {
-                set stateActiveNodes($node) 1
+                dict set stateActiveNodes $node 1
             }
         }
         
 	set evlist {}
-        foreach node [array names stateActiveNodes] {
+        foreach node [dict keys $stateActiveNodes] {
             $node dynamic set active
             lappend evlist mousedown $node
         }
@@ -43,23 +43,30 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
 
     method Release {w x y} {
         adjust-coords-to $myHtml $w x y
-        set nodelist [$myHtml node $x $y]
+        set nodeDict [dict create]
+        foreach node [$myHtml node $x $y] {
+            dict set nodeDict $node 1
+        }
 
         set evlist {}
-        foreach node [array names stateActiveNodes] {
+        foreach node [dict keys $stateActiveNodes] {
             $node dynamic clear active
             lappend evlist mouseup $node
-            lappend nodelist $node
+            if {[dict exists $nodeDict $node]} continue
+            dict set nodeDict $node 1
         }
-        array unset stateActiveNodes
+        set stateActiveNodes [dict create]
         
-        foreach node $nodelist {
+        foreach node [dict keys $nodeDict] {
             lappend evlist click $node
         }
 
+        # puts stderr [list Release generates: $evlist]
+
         $self node event generatelist $evlist
 
-        $self node event selection release [lindex $nodelist end] $x $y
+        $self node event selection release \
+            [lindex [dict keys $nodeDict] end] $x $y
     }
 
     method Motion {w x y} {
@@ -244,20 +251,18 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     }
 
     method {node event clear} {node event} {
-        dict set stateTriggerDict $node $event {}       
+        dict set stateTriggerDict $node $event {}
     }
 
     method {node event trigger} {startNode event args} {
-
         set handlers [$self node event list-handlers $startNode $event \
 			  $args]
-        # puts startNode=$startNode,[if {$startNode ne ""} {
-        #     list tag=[$startNode tag]
-        # }],event=$event,handlers=$handlers
-
+        if {$handlers eq ""} {
+            # XXX
+        }
         $self node event handlelist $handlers
     }
-    
+
     #
     # This single loop runs all matched handlers at once.
     #
@@ -291,57 +296,73 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
             $self $win $selfns $node $node {*}$args
     }
 
-    option -debug-mouse-event 0
     method {node event generatelist} evlist {
-        if {$options(-debug-mouse-event) >= 2} {
-            puts stderr "(node event generatelist) $evlist"
-        }
         set handlers {}
+        array set seen {}
         foreach {event node} $evlist {
-            lappend handlers {*}[$self node event list-handlers $node $event]
+            foreach spec [$self node event list-handlers $node $event] {
+                if {[incr seen($spec)] >= 2} continue
+                lappend handlers $spec
+            }
         }
         $self node event handlelist $handlers
     }
 
     #
-    # This defines event triggering order.
+    # This was introduced to define event triggering order, but now it isn't.
     #
     option -generate-tag-class-event yes
     method {node event list-handlers} {startNode event {arglist ""}} {
-        set result {}
+
         if {$startNode ne ""} {
             set startNode [parent-of-textnode $startNode]
         }
-        set altList [if {$startNode ne ""
+        set nodeSpecList [if {$startNode ne ""
                          && $options(-generate-tag-class-event)} {
             tag-class-list-of-node $startNode
+        } else {
+            list $startNode
         }]
-        
-        # 1. Bubble up order
-        # 2. (tag.class / tag) handlers
-        # 3. global handler (node = "")
 
-        for-upward-node nspec $startNode {
+        set result []
+        foreach nspec $nodeSpecList {
             # In simple case, nspec = key = node
             # In tag-class-list, nspec = [list tag_class node]
             set key  [lindex $nspec 0]
             set node [lindex $nspec end]
 
-            if {![dict-getvar $stateTriggerDict $key $event cmdlist]} continue
+            # puts [list look-for $event $key $node]
+            if {!(
+                  [dict-getvar $stateTriggerDict $node $event cmdlist]
+                  || [dict-getvar $stateTriggerDict $key $event cmdlist]
+                  )
+            } continue
 
-	    if {$node eq ""} {
-		set node [if {$startNode ne ""} {
-		    set startNode
-		} else {
-		    $myHtml node
-		}]
-	    }
+            if {$node eq ""} {
+                set node [if {$startNode ne ""} {
+                    set startNode
+                } else {
+                    $myHtml node
+                }]
+            }
 
             foreach cmd $cmdlist {
                 lappend result [list $event $node $cmd {*}$arglist]
             }
+        }
 
-        } {*}$altList ""
+        # global event
+        if {$result eq ""
+            && [dict-getvar $stateTriggerDict "" $event cmdlist]} {
+            foreach cmd $cmdlist {
+                lappend result [list $event $node $cmd {*}$arglist]
+            }
+        }
+        if {$result eq ""} {
+            # puts [list no handler for $event $startNode]
+        } else {
+            # puts [list event $event on $startNode generates: $result]
+        }
 
         set result
     }
@@ -382,7 +403,6 @@ snit::macro ::minhtmltk::helper::mouseevent0 {} {
     }
 
     method {node event tag label click} node {
-        # puts [list click label [$self innerTextPre $node]]
         set inputs [if {[set id [$node attr -default "" for]] ne ""} {
             # <label for="id">
             
