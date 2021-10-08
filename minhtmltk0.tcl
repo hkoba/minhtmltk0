@@ -267,7 +267,11 @@ if {![info level] && [info exists ::argv0]
 
     pack [minhtmltk .win {*}[minhtmltk::parsePosixOpts ::argv]] \
         -fill both -expand yes
-    
+
+    foreach inc [glob [file dirname [info script]]/include/*.tcl] {
+        source $inc
+    }
+
     snit::method minhtmltk Open {file args} {
         $self configure {*}$args
         $self replace_location_html $file \
