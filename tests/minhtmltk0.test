@@ -331,6 +331,39 @@ test $P-$C-[incr I]-parse "empty option in select single" -body {
                [list "" one 2] \
               ]
 
+test $P-$C-[incr I]-parse "Empty value can be selected correctly" -body {
+    .ht Reset
+    .ht parse -final {
+        <form>
+	<select name="q1">
+        <option value="">Choose!</option>
+        <option value=1>one</option>
+        <option value=2>two</option>
+        <option value=3>three</option>
+        </select>
+        </form>
+    }
+    set res []
+    set node [.ht search select]
+    set m [[$node replace] cget -menu]
+    set form [.ht form get 0]
+    set var [$form node var $node]
+    lappend res [list {*}[$form get_all] [set $var]]
+
+    $m invoke 3
+    # update
+    lappend res [list {*}[$form get_all] [set $var]]
+    $m invoke 0
+    # update
+    lappend res [list {*}[$form get_all] [set $var]]
+
+} -result [list \
+               [list q1 {} {}] \
+               [list q1 3 3] \
+               [list q1 {} {}] \
+              ]
+
+#========================================
 
 test $P-$C-[incr I]-parse "select multi" -body {
     .ht Reset
