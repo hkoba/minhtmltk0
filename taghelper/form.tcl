@@ -326,10 +326,12 @@ snit::macro ::minhtmltk::taghelper::form {} {
 		{*}$args
 	}
     }
-        
+
     method {add input submit} {path node form args} {
-        $form node add submit $node \
-            [node-atts-assign $node name {value Submit}]
+        set atts [node-atts-assign $node name {value Submit}]
+        if {$name ne ""} {
+            $form node add submit $node $atts
+        }
 
 	# XXX: This node event API is not yet stabilized.
 	if {$options(-use-tk-button)} {
