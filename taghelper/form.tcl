@@ -18,7 +18,25 @@ snit::macro ::minhtmltk::taghelper::form {} {
         }
         return $myHtml._$id
     }
-    
+
+    method {node form kind} node {
+        set tag [$node tag]
+        switch $tag {
+            input {
+                return [list input [$node attr -default text type]]
+            }
+            select {
+                if {[$node attr -default "no" multi] ne "no"} {
+                    return select-multi
+                } else {
+                    return select-single
+                }
+            }
+            default {
+                return $tag
+            }
+        }
+    }
     method {with form} command {
         upvar 1 form form
         set form [$self form current]
@@ -168,11 +186,7 @@ snit::macro ::minhtmltk::taghelper::form {} {
     method {add node select} node {
         $self with form {
             $self with path-of $node {
-                if {[$node attr -default "no" multi] ne "no"} {
-                    $self add select-multi $path $node $form
-                } else {
-                    $self add select-single $path $node $form
-                }
+                $self add [$self node form kind $node] $path $node $form
             }
         }
     }
