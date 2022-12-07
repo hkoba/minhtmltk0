@@ -50,6 +50,64 @@ test $P-$C-[incr I]-selector "" -body {
 #----------------------------------------
 incr C
 
+test $P-$C-[incr I]-parse "text, password, hidden" -body {
+    .ht Reset
+    .ht parse -final {
+        <input type="text" name="text" value="text">
+        <input type="password" name="password" value="password">
+        <input type="hidden" name="hidden" value="hidden">
+    }
+
+    set form [.ht form get 0]
+    $form get_all
+} -result [list text text password password hidden hidden]
+
+#----------------------------------------
+incr C
+
+test $P-$C-[incr I]-parse "submit (nameless)" -body {
+    .ht Reset
+    .ht parse -final {
+        <input name="q1">
+        <input type="submit" value="Save">
+    }
+
+    set form [.ht form get 0]
+    $form get_all
+} -result [list q1 ""]
+
+#----------------------------------------
+incr C
+
+test $P-$C-[incr I]-parse "named submit" -body {
+    .ht Reset
+    .ht parse -final {
+        <input name="q1">
+        <input type="submit" name="send" value="Save">
+    }
+
+    set form [.ht form get 0]
+    $form get_all
+} -result [list q1 "" send Save]
+
+#----------------------------------------
+incr C
+
+test $P-$C-[incr I]-parse "buttons (named, nameless)" -body {
+    .ht Reset
+    .ht parse -final {
+        <input name="q1">
+        <input type="button" name="named" value="aaa">
+        <input type="button" value="nameless">
+    }
+
+    set form [.ht form get 0]
+    $form get_all
+} -result [list q1 ""]
+
+#----------------------------------------
+incr C
+
 test $P-$C-[incr I]-parse "Input without <form> is mimiced as form 0" -body {
     .ht Reset
     .ht parse -final {
