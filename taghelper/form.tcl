@@ -180,7 +180,7 @@ snit::macro ::minhtmltk::taghelper::form {} {
     method {add select-single} {path selNode form args} {
         set name [$selNode attr -default "" name]
         lassign [$self form collect options $selNode] \
-            nodeDefs labelList selected valueList
+            recordList nodeDefs labelList selected valueList
 
         set var [$form node add single $selNode [dict create name $name]]
         set labelVar ${var}_label
@@ -220,7 +220,7 @@ snit::macro ::minhtmltk::taghelper::form {} {
     method {add select-multi} {path selNode form args} {
         set name [$selNode attr -default "" name]
         lassign [$self form collect options $selNode] \
-            nodeDefs labelList selected
+            recordList nodeDefs labelList selected
 
         $form node add multi $selNode [dict create name $name] \
             getter [list {{path form name ix} {
@@ -253,10 +253,11 @@ snit::macro ::minhtmltk::taghelper::form {} {
 
     method {form collect options} {selNode} {
         set name [$selNode attr -default "" name]
+        set recordList {}
         set nodeDefs {}
         set labelList {}
         set valueList {}
-        set selected {}
+        set selectedList {}
         set i -1
         foreach node [$self search option -root $selNode] {
             incr i
@@ -265,6 +266,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
             } else {
                 [lindex $kids 0] text
             }]
+            # XXX: ./src/htmltcl.c:381: checkRestylePointCb: Assertion `p' failed.
+            # if {![$self node is-shown $node]} continue
             lappend labelList $label
             set value [if {"value" in [$node attr]} {
                 $node attr value
@@ -273,11 +276,13 @@ snit::macro ::minhtmltk::taghelper::form {} {
             }]
             lappend valueList $value
             lappend nodeDefs [list $node $value]
-            if {[$node attr -default no selected] ne "no"} {
-                lappend selected $i
+            set selected [expr {[$node attr -default no selected] ne "no"}]
+            if {$selected} {
+                lappend selectedList $i
             }
+            lappend recordList [dict create value $value label $label node $node selected $selected]
         }
-        list $nodeDefs $labelList $selected $valueList
+        list $recordList $nodeDefs $labelList $selectedList $valueList
     }
 
     #----------------------------------------
