@@ -37,6 +37,11 @@ snit::macro ::minhtmltk::taghelper::form {} {
             }
         }
     }
+
+    method {form redraw} {node args} {
+        $self form redraw-input [$self node form kind $node] $node {*}$args
+    }
+
     method {with form} command {
         upvar 1 form form
         set form [$self form current]
