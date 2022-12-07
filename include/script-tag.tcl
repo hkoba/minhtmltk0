@@ -9,11 +9,7 @@ snit::method ::minhtmltk {add script script} {atts body} {
         [dict exists $atts type]
         && [dict get $atts type] in $options(-script-type)} {
         set rc [catch {
-            set me [if {$options(-script-self) ne ""} {
-                set options(-script-self)
-            } else {
-                set self
-            }]
+            set me [$self script-self]
             apply [list {self win atts} $body $selfns] $me $win $atts
         } error]
 

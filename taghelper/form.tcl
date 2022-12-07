@@ -205,13 +205,24 @@ snit::macro ::minhtmltk::taghelper::form {} {
         set labelVar ${var}_label
 
         $form node trace configure $selNode \
-            setter [list {{path form name labelVar labelList value} {
+            setter [list {{self selNode path form name labelVar labelList value} {
                 set valueList [$form choicelist $name]
                 set pos [lsearch -exact $valueList $value]
                 if {$pos >= 0} {
                     set $labelVar [lindex $labelList $pos]
+
+                    if {[$self state is DocumentReady]} {
+                        $self node event trigger $selNode change
+                    }
                 }
-            }} $path $form $name $labelVar $labelList]
+            }} $self $selNode $path $form $name $labelVar $labelList]
+
+        if {[set script [$selNode attr -default "" onchange]] ne ""} {
+            $self node event on $selNode change \
+                [list apply [list args [list apply [list {
+                    self win node form varName args
+                } $script] [$self script-self] $win $selNode $form $var]]]
+        }
 
         foreach spec $nodeDefs {
             lassign $spec node value

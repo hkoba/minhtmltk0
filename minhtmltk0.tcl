@@ -34,6 +34,15 @@ snit::widget minhtmltk {
     option -script-self ""
     option -script-type [list text/x-tcl text/tcl tcl]
 
+    # $self for script/event handlers
+    method script-self {} {
+        if {$options(-script-self) ne ""} {
+            set options(-script-self)
+        } else {
+            set self
+        }
+    }
+
     component myURINavigator -public nav
     delegate option -uri to myURINavigator as -uri
     delegate option -file to myURINavigator as -uri
@@ -129,10 +138,12 @@ snit::widget minhtmltk {
     option -emit-ready-immediately no
 
     variable stateHtmlSource ""
+    variable stateDocumentReady ""
     method parse args {
         append stateHtmlSource [lindex $args end]
         $myHtml parse {*}$args
         if {[lindex $args 0] eq "-final"} {
+            set stateDocumentReady yes
             set cmd [list event generate $win <<DocumentReady>>]
             # This cmd will call [$self node event trigger "" ready]
             if {$options(-emit-ready-immediately)} {
@@ -141,6 +152,10 @@ snit::widget minhtmltk {
                 after idle $cmd
             }
         }
+    }
+
+    method {state is DocumentReady} {} {
+        expr {$stateDocumentReady ne ""}
     }
 
     method {state source} {} {

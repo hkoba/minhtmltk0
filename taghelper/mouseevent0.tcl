@@ -184,6 +184,7 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     set evlist [list \
                     ready \
                     submit \
+                    change \
                     mouseover mousemove mouseout click \
                     dblclick mousedown mouseup]
     typevariable ourMouseEventList $evlist
