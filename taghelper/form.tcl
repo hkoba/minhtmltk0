@@ -176,7 +176,7 @@ snit::macro ::minhtmltk::taghelper::form {} {
             }
         }
     }
-    
+
     method {add select-single} {path selNode form args} {
         set name [$selNode attr -default "" name]
         lassign [$self form collect options $selNode] \
@@ -205,13 +205,44 @@ snit::macro ::minhtmltk::taghelper::form {} {
             -relief raised -highlightthickness 1 -anchor c \
             -direction flush
         menu $menu -tearoff 0
-        foreach value $valueList label $labelList {
-            $menu add radiobutton -variable $var -label $label -value $value
+
+        # replace early
+        $selNode replace $path
+
+        $self form redraw-input select-single $selNode \
+            $recordList
+    }
+
+    method {form redraw-input select-single} {node recordList} {
+        set menuButton [$node replace]
+        set menu [$menuButton cget -menu]
+        $menu delete 0 end
+
+        set form [$self form of-node $node]
+        set var [$form node var $node]
+
+        set i -1
+        set labelList {}
+        set valueList {}
+        set selectedList {}
+        foreach item $recordList {
+            incr i
+            set value [dict get $item value]
+            $menu add radiobutton -variable $var \
+                -label [dict get $item label] \
+                -command [list set $var $value]
+            # -value {} doesn't work for radiobutton entry!
+
+            lappend labelList [dict get $item label]
+            lappend valueList $value
+            if {[dict get $item selected]} {
+                lappend selectedList $i
+            }
         }
         if {$labelList eq ""} {
             return
-        } elseif {$selected ne ""} {
-            set $var [lsearch -exact $valueList $selected]
+        } elseif {$selectedList ne ""} {
+            set $var [lsearch -exact $valueList $selectedList]
         } else {
             set $var [lindex $valueList 0]
         }
