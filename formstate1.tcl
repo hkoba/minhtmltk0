@@ -255,6 +255,10 @@ snit::type ::minhtmltk::formstate {
 	}
     }
 
+    method {node of-name} name {
+        dict get $myNameDict $name nodeList
+    }
+
     method {node at} i {
 	lindex $myNodeList $i
     }
@@ -324,7 +328,7 @@ snit::type ::minhtmltk::formstate {
                 trace add variable $array_name $trace \
                     [list $self do-trace array $trace $node]
             } else {
-                     trace add variable $var $trace \
+                trace add variable $var $trace \
                     [list $self do-trace scalar $trace $node $var]
             }
         }
@@ -384,6 +388,10 @@ snit::type ::minhtmltk::formstate {
 	dict get $myNameDict $name $key
     }
 
+    method {name dict dump} {name} {
+	dict get $myNameDict $name
+    }
+
     method {node count} {} {dict size $myNodeDict}
     method {node name} {node} {
         dict get $myNodeDict $node name
@@ -396,7 +404,7 @@ snit::type ::minhtmltk::formstate {
 	lappend myNodeList $node
 	dict set myNodeDict $node \
 	    [dict create kind $kind name $name attr $attr\
-		type "" var ""]
+                 type "" var ""]
         if {[info exists value]} {
             dict set myNodeDict $node value $value
         }
@@ -404,6 +412,9 @@ snit::type ::minhtmltk::formstate {
     }
     method {node var} {node} {
 	$self node dict get $node $ourSlots(var)
+    }
+    method {node value} {node} {
+	set [$self node var $node]
     }
 
     method {node dict set} {node key value} {

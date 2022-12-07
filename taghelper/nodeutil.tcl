@@ -23,6 +23,14 @@ snit::macro ::minhtmltk::taghelper::nodeutil {} {
         $node insert [$myHtml fragment $html]
     }
 
+    method {node is-shown} node {
+        set dict [$node property]
+        expr {[dict get $dict display] ne "none"
+              &&
+              [dict get $dict visibility] ne "hidden"
+          }
+    }
+
     # extract attr (like [lassign]) returns [dict]
     proc node-atts-assign {node args} {
         set _atts {}
