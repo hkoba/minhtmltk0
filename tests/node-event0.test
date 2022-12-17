@@ -1,0 +1,111 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+#========================================
+
+set P node-event
+set type ::minhtmltk
+
+test $P-setup setup -body {
+    deleteWindows
+    winfo children .
+} -result ""
+
+test $P-init load -body {
+    # set abs [file normalize [info script]]
+    # source [file join [file dirname [file dirname $abs]] \
+    # 		[file rootname [file tail $abs]].tcl]
+    set abs [file normalize [info script]]
+    source [file join [file dirname [file dirname $abs]] \
+		minhtmltk0.tcl]
+} -result $type
+
+namespace import ::minhtmltk::utils::*
+
+#========================================
+
+test $P-create "" -body {
+    if {[winfo exists .ht]} { rename .ht "" }
+
+    $type .ht -debug yes
+} -result .ht
+
+#========================================
+
+pack .ht -fill both -expand yes
+# .ht configure -emit-ready-immediately yes
+
+incr D
+test $P-$D-input-text "input text onchange" -body {
+
+    set ::OUT ""
+
+    .ht parse -final {
+        <form>
+        <input type="text" name="q1" onchange="lappend ::OUT foo">
+        </form>
+    }
+
+    # Directly insert "bar" to q1
+    [[.ht search input] replace] insert 0 bar
+
+    list $::OUT [[.ht form get 0] get_all]
+
+} -result {foo {q1 bar}}
+
+incr D
+test $P-$D-input-text "input checkbox, radio onchange" -body {
+    .ht Reset
+
+    set ::OUT ""
+
+    .ht parse -final {
+        <form>
+        <input type="checkbox" name="q1" value="x" onchange="lappend ::OUT foo">
+        <input type="radio"    name="q2" value="y" onchange="lappend ::OUT bar">
+        </form>
+    }
+
+    # Directly invoke q1, q2
+    [[.ht search {input[name=q1]}] replace] invoke
+    [[.ht search {input[name=q2]}] replace] invoke
+
+    list $::OUT [[.ht form get 0] get_all]
+
+} -result {{foo bar} {q1 x q2 y}}
+
+incr D
+test $P-$D-input-text "select onchange" -body {
+    .ht Reset
+
+    set ::OUT ""
+
+    .ht parse -final {
+        <form>
+        <select name="q1" onchange="lappend ::OUT foo">
+        <option value="">↓Please select
+        <option value="apple">Apple
+        <option value="orange">Orange
+        </select>
+        </form>
+    }
+
+    # Directly invoke q1
+    [[[.ht search {select}] replace] cget -menu] invoke 1
+
+    list $::OUT [[.ht form get 0] get_all]
+
+} -result {foo {q1 apple}}
+
+tcltest::cleanupTests
