@@ -95,8 +95,8 @@ test $P-$D-input-text "select onchange" -body {
         <form>
         <select name="q1" onchange="lappend ::OUT foo">
         <option value="">↓Please select
-        <option value="apple">Apple
-        <option value="orange">Orange
+        <option value="apple">I like apples
+        <option value="orange">I like oranges
         </select>
         </form>
     }
