@@ -38,7 +38,8 @@ namespace import ::minhtmltk::utils::*
 test $P-create "" -body {
     if {[winfo exists .ht]} { rename .ht "" }
 
-    $type .ht -debug yes
+    $type .ht -debug [::minhtmltk::utils::default \
+                          ::env(DEBUG_HTMLTK_NODE_EVENT) 0]
 } -result .ht
 
 #========================================

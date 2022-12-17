@@ -28,7 +28,8 @@ test $P-init load -body {
 test $P-create "" -body {
     if {[winfo exists .ht]} { rename .ht "" }
 
-    $type .ht -debug yes
+    $type .ht -debug [::minhtmltk::utils::default \
+                          ::env(DEBUG_HTMLTK_WIDGET) 0]
 } -result .ht
 
 #----------------------------------------

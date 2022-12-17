@@ -126,7 +126,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
         }
 
         set form [$self form new $name -action [$node attr -default "" action] \
-                     -node $node]
+                      -node $node \
+                      -debug [expr {$options(-debug) && $options(-debug) >= 2}]]
 	set stateFormNodeDict($node) $form
         lappend stateFormList $form
         set $vn $form
@@ -222,13 +223,20 @@ snit::macro ::minhtmltk::taghelper::form {} {
         set labelVar ${var}_label
 
         $form node trace configure $selNode \
-            setter [list {{self selNode path form name labelVar labelList value} {
+            setter [list {{self selNode path form name var labelVar labelList value} {
                 set valueList [$form choicelist $name]
                 set pos [lsearch -exact $valueList $value]
+                if {[$self cget -debug] >= 2} {
+                    puts [list setter value $value var $var \
+                              varValue [set $var] \
+                              labelVar $labelVar \
+                              labelValue [set $labelVar] \
+                              pos $pos valueList $valueList]
+                }
                 if {$pos >= 0} {
                     set $labelVar [lindex $labelList $pos]
                 }
-            }} $self $selNode $path $form $name $labelVar $labelList]
+            }} $self $selNode $path $form $name $var $labelVar $labelList]
 
         $self form event configure $form $selNode
 

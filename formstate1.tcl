@@ -35,9 +35,9 @@ snit::type ::minhtmltk::formstate {
     }
 
     # 
-    option -debug no
+    option -debug 0
     method dvars {msg varName args} {
-	if {$options(-debug)} {
+	if {$options(-debug) >= 2} {
 	    puts -nonewline stderr "$msg "
 	    foreach vn [list $varName {*}$args] {
 		if {[uplevel 1 [list info exists $vn]]} {
