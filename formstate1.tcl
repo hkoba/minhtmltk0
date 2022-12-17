@@ -228,6 +228,12 @@ snit::type ::minhtmltk::formstate {
         }
     }
 
+    method {multi change} {name valueList boolean} {
+        $self multi forEach var $name $valueList {
+            set $var $boolean
+        }
+    }
+
     method {multi test_all} {name value args} {
         $self multi forEach {var choice} $name [list $value {*}$args] {
             if {![default $var 0]} {

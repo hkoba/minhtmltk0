@@ -136,6 +136,15 @@ test $P-$T-checkbox-set-clear-[incr i] "" -body {
     {}
 }]
 
+$form multi unset $name {1 2 3}
+
+test $P-$T-checkbox-set-clear-[incr i] "" -body {
+    $form multi change $name 2 yes
+    $form multi get $name
+} -result 2
+
+$form multi unset $name {1 2 3}
+
 #----------------------------------------
 # text
 
