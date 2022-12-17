@@ -151,6 +151,23 @@ snit::macro ::minhtmltk::taghelper::form {} {
         formstate $self.form%AUTO% -window $win -name $name {*}$args
     }
     
+    method {form event configure} {form node args} {
+        if {$args eq ""} {set args [list change]}
+        foreach event $args {
+            if {![info exists ourEvDict($event)]} {
+                $self logger error "event not supported: $event (on $node [$node tag] [$node attr])"
+                continue
+            }
+            if {[set script [$node attr -default "" on$event]] eq ""} continue
+            set var [$form node var $node]
+            # puts [list add node event on $node $event var: $var script: $script]
+            $self node event on $node $event \
+                [list apply [list args [list apply [list {
+                    self win node form varName args
+                } $script] [$self script-self] $win $node $form $var]]]
+        }
+    }
+
     #
     # <textarea>
     #
@@ -210,19 +227,10 @@ snit::macro ::minhtmltk::taghelper::form {} {
                 set pos [lsearch -exact $valueList $value]
                 if {$pos >= 0} {
                     set $labelVar [lindex $labelList $pos]
-
-                    if {[$self state is DocumentReady]} {
-                        $self node event trigger $selNode change
-                    }
                 }
             }} $self $selNode $path $form $name $labelVar $labelList]
 
-        if {[set script [$selNode attr -default "" onchange]] ne ""} {
-            $self node event on $selNode change \
-                [list apply [list args [list apply [list {
-                    self win node form varName args
-                } $script] [$self script-self] $win $selNode $form $var]]]
-        }
+        $self form event configure $form $selNode
 
         foreach spec $nodeDefs {
             lassign $spec node value
@@ -356,6 +364,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
                 set methName [list add input $t]
                 if {[llength [$self info methods $methName]]} {
                     $self {*}$methName $path $node $form
+
+                    $self form event configure $form $node
                 } else {
                     $self error add [list unknown input-type $t $node]
                     set path ""; # To avoid $node replace $path
