@@ -342,8 +342,18 @@ snit::type ::minhtmltk::formstate {
 	set $varName [apply {*}$apply]
     }
     method {do-trace scalar write} {node varName args} {
-        set apply [dict get $myNodeDict $node setter]
-	apply {*}$apply [set $varName]
+        if {[set apply [dict-default [dict get $myNodeDict $node] setter]] ne ""} {
+            apply {*}$apply [set $varName]
+        }
+        if {$options(-window) ne ""
+            && [$options(-window) state is DocumentReady]} {
+            if {$options(-debug) >= 2} {
+                puts [list trace scalar write var $varName \
+                          value [set $varName] \
+                          node $node [$node tag] [$node attr]]
+            }
+            $options(-window) node event trigger $node change
+        }
     }
     method {do-trace array read} {node arrayName ix args} {
         set apply [dict get $myNodeDict $node getter]
@@ -351,9 +361,17 @@ snit::type ::minhtmltk::formstate {
 	$self dvars "trace array read " arrayName ix
     }
     method {do-trace array write} {node arrayName ix args} {
-        set apply [dict get $myNodeDict $node setter]
-	apply {*}$apply $ix [set [set arrayName]($ix)]
-	$self dvars "trace array write " arrayName ix
+        if {[set apply [dict-default [dict get $myNodeDict $node] setter]] ne ""} {
+            apply {*}$apply $ix [set [set arrayName]($ix)]
+            $self dvars "trace array write " arrayName ix
+        }
+        if {$options(-window) ne ""
+            && [$options(-window) state is DocumentReady]} {
+            if {$options(-debug) >= 2} {
+                puts [list trace array write $node [$node tag] [$node attr]]
+            }
+            $options(-window) node event trigger $node change
+        }
     }
 
     method add-name-of {node name {_is_array 0}} {

@@ -380,11 +380,15 @@ snit::macro ::minhtmltk::taghelper::form {} {
         ::ttk::entry $path \
             -textvariable $var \
             -width [$node attr -default 20 size] {*}$args
-        if {[set script [$node attr -default "" onchange]] ne ""} {
-            bind $path <Return> \
-                [list apply [list {win node path form} $script]\
-                     $win $node $path $form]
-        }
+
+        trace add variable $var write \
+            [list $form do-trace scalar write $node]
+
+        # if {[set script [$node attr -default "" onchange]] ne ""} {
+        #     bind $path <Return> \
+        #         [list apply [list {win node path form} $script]\
+        #              $win $node $path $form]
+        # }
     }
 
     method {add input password} {path node form args} {
@@ -425,6 +429,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
         set var [$form node add multi $node \
                      [node-atts-assign $node name {value on}]]
         set $var [expr {[$node attr -default "no" checked] ne "no"}]
+        trace add variable $var write \
+            [list $form do-trace array write $node]
         ttk::checkbutton $path -variable $var
     }
 
@@ -434,12 +440,17 @@ snit::macro ::minhtmltk::taghelper::form {} {
         if {[$node attr -default "no" checked] ne "no"} {
             set $var $value
         }
+        trace add variable $var write \
+            [list $form do-trace scalar write $node]
         ttk::radiobutton $path -variable $var -value $value
     }
 
     method {add input hidden} {path node form args} {
-        $form node add text $node \
-            [node-atts-assign $node name value]
+        set var [$form node add text $node \
+                     [node-atts-assign $node name value]]
+
+        trace add variable $var write \
+            [list $form do-trace scalar write $node]
     }
 }
 
