@@ -266,6 +266,7 @@ snit::macro ::minhtmltk::taghelper::form {} {
 
         set form [$self form of-node $node]
         set var [$form node var $node]
+        set isSet [info exists $var]
 
         set i -1
         set labelList {}
@@ -285,12 +286,22 @@ snit::macro ::minhtmltk::taghelper::form {} {
                 lappend selectedList $i
             }
         }
-        if {$labelList eq ""} {
+        if {$labelList eq "" || $isSet} {
             return
-        } elseif {$selectedList ne ""} {
-            set $var [lsearch -exact $valueList $selectedList]
         } else {
-            set $var [lindex $valueList 0]
+            set newValue [if {$selectedList ne ""} {
+                set comment [list redraw set: var $var $selectedList]
+                lsearch -exact $valueList $selectedList
+            } else {
+                set comment [list redraw reset: var $var to [lindex $valueList 0]]
+                lindex $valueList 0
+            }]
+            if {!$isSet || $newValue ne [set $var]} {
+                if {$options(-debug) >= 2} {
+                    puts $comment
+                }
+                set $var $newValue
+            }
         }
     }
 
