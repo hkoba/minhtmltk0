@@ -2,6 +2,8 @@
 
 namespace eval ::minhtmltk::taghelper {}
 
+package require tooltip
+
 ::minhtmltk::taghelper::add parse form
 ::minhtmltk::taghelper::add node  input by-input-type
 ::minhtmltk::taghelper::add node  textarea
@@ -374,6 +376,12 @@ snit::macro ::minhtmltk::taghelper::form {} {
         list $recordList $nodeDefs $labelList $selectedList $valueList
     }
 
+    method {node title configure} {node path} {
+        set title [$node attr -default "" title]
+        if {$title eq ""} return
+        ::tooltip::tooltip $path $title
+    }
+
     #----------------------------------------
     # <input type=...>
     #----------------------------------------
@@ -386,6 +394,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
                     $self {*}$methName $path $node $form
 
                     $self form event configure $form $node
+
+                    $self node title configure $node $path
                 } else {
                     $self error add [list unknown input-type $t $node]
                     set path ""; # To avoid $node replace $path
