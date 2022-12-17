@@ -1,0 +1,12 @@
+name: xvfb-run-tcltk-test
+on: [push]
+jobs:
+  tcltk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - run: apt update && apt install xvfb wish tcllib tklib tclx
+        name: Install required packages
+      - name: Run tests
+        run: xvfb-run tests/all.tcl
