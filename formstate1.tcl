@@ -4,6 +4,7 @@
     exec tclsh -encoding utf-8 "$0" ${1+"$@"}
 
 package require snit
+package require dicttool
 
 source [file dirname [info script]]/utils.tcl
 
@@ -416,6 +417,14 @@ snit::type ::minhtmltk::formstate {
 	dict get $myNameDict $name
     }
 
+    method {name var} {name} {
+        set varList []
+        foreach node [dict get $myNameDict $name nodeList] {
+            lappend varList [dict get $myNodeDict $node $ourSlots(var)]
+        }
+        set varList
+    }
+
     method {node count} {} {dict size $myNodeDict}
     method {node name} {node} {
         dict get $myNodeDict $node name
@@ -441,6 +450,9 @@ snit::type ::minhtmltk::formstate {
 	set [$self node var $node]
     }
 
+    method {node dict dump} {} {
+	dict print $myNodeDict
+    }
     method {node dict set} {node key value} {
 	dict set myNodeDict $node $ourSlots($key) $value
     }
