@@ -275,10 +275,11 @@ snit::macro ::minhtmltk::taghelper::form {} {
         foreach item $recordList {
             incr i
             set value [dict get $item value]
-            $menu add radiobutton -variable $var \
+            $menu add radiobutton \
                 -label [dict get $item label] \
                 -command [list set $var $value]
             # -value {} doesn't work for radiobutton entry!
+            # -variable $var with -command causes double-assignment!
 
             lappend labelList [dict get $item label]
             lappend valueList $value
