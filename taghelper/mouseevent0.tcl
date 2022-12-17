@@ -258,6 +258,7 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     }
 
     method {node event trigger} {startNode event args} {
+        if {![$self state is DocumentReady]} return
         set handlers [$self node event list-handlers $startNode $event \
 			  $args]
         if {$handlers eq ""} {
