@@ -53,6 +53,8 @@ snit::widget minhtmltk {
 
     option -encoding ""
 
+    option -install-default-handlers yes
+
     variable myLogHistory [list]
     variable stateCurrentLog [list]
 
@@ -90,8 +92,11 @@ snit::widget minhtmltk {
         install myHtml using html $sw.html
         $sw setwidget $myHtml
 
+        if {[from args -install-default-handlers yes]} {
+            $self Reset
+        }
+
         $self configurelist $args
-        # $self interactive; # ← called from Reset (from replace_location_html)
 
         if {[$self location get] eq ""} {
             $self nav gotoHome
