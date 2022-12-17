@@ -6,7 +6,7 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - run: apt update && apt install xvfb wish tcllib tklib tclx
+      - run: sudo apt update && sudo apt install xvfb wish tcllib tklib tclx
         name: Install required packages
       - name: Run tests
         run: xvfb-run tests/all.tcl
