@@ -1,0 +1,79 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+    
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+package require struct::list
+
+set type ::minhtmltk
+set theme ttk_bgstyle
+
+#----------------------------------------
+
+test $type-load load -body {
+    set abs [file normalize [info script]]
+    source [file join [file dirname [file dirname $abs]] minhtmltk0.tcl]
+} -result $type
+
+# TRadiobutton (or something else)
+set STYLE_KEY [$type ttk-style-get radiobutton]
+
+test $theme-1 "ttk style $STYLE_KEY - before mapping mainwin" -body {
+    set config [::ttk::style configure $STYLE_KEY]
+    ::minhtmltk::utils::dict-default $config -background ""
+} -result white
+
+package require Tk
+update idletask
+
+# This resets ttk style
+ttk::style theme use alt
+
+test $theme-2 "after ttk::style theme use" -body {
+    set config [::ttk::style configure $STYLE_KEY]
+    ::minhtmltk::utils::dict-default $config -background ""
+} -result ""
+
+#----------------------------------------
+
+if {[winfo exists .ht]} { rename .ht "" }
+
+$type .ht -debug [::minhtmltk::utils::default \
+                      ::env(DEBUG_HTMLTK_WIDGET) 0]
+
+pack .ht -fill both -expand yes
+
+# constructor of minhtmltk should revert the ttk style
+
+test $theme-3 "$type mapped" -body {
+    set config [::ttk::style configure $STYLE_KEY]
+    ::minhtmltk::utils::dict-default $config -background ""
+} -result white
+
+.ht parse -final {
+    <form>
+    <label><input type="checkbox" name="q1" value=1>AAA</label><br>
+    <label><input type="checkbox" name="q1" value=2>BBB</label><br>
+    <label><input type="radio" name="q2" value=1>AAA</label><br>
+    <label><input type="radio" name="q2" value=2>BBB</label><br>
+    <input type="button" onclick="set ::DONE yes" value="Press this to proceed!">
+    </form>
+}
+
+if {[::minhtmltk::utils::default \
+         ::env(DEBUG_HTMLTK_WIDGET_PAUSE) 0]} {
+    vwait ::DONE
+}
+
+#----------------------------------------
+
+tcltest::cleanupTests

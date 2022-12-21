@@ -34,6 +34,14 @@ snit::widget minhtmltk {
     option -script-self ""
     option -script-type [list text/x-tcl text/tcl tcl]
 
+    typevariable ourTtkDefaultBackground white
+    typevariable ourTtkDefaultActiveBackground white
+    typevariable ourTtkClassMap [dict create {*}{
+        checkbutton TCheckbutton
+        radiobutton TRadiobutton
+        button      TButton
+    }]
+
     # $self for script/event handlers
     method script-self {} {
         if {$options(-script-self) ne ""} {
@@ -62,16 +70,43 @@ snit::widget minhtmltk {
         if {[ttk::style theme use] eq "default"} {
             ttk::style theme use clam
         }
-        foreach t {TCheckbutton TRadiobutton TButton} {
-            ::ttk::style configure $t \
-                -background white -activebackground white
-        }
+
+        $type fixup-ttk-style
 
         bind $ourClass <<DocumentReady>> {%W trigger ready}
     }
 
+    typemethod ttk-style-get key {
+        dict get $ourTtkClassMap $key
+    }
+
+    typemethod ensure-ttk-style-is-fixed {} {
+        set config [::ttk::style configure \
+                        [dict get $ourTtkClassMap radiobutton]]
+        if {[dict-default $config -background] ne $ourTtkDefaultBackground} {
+            $type fixup-ttk-style
+        }
+    }
+
+    typemethod fixup-ttk-style {} {
+        foreach widget [dict keys $ourTtkClassMap] {
+            set style [dict get $ourTtkClassMap $widget]
+            if {[::ttk::style configure $style] eq ""} {
+                # puts [list setting style for $style]
+                set parent T[string totitle $widget]
+                ::ttk::style configure $style \
+                    {*}[::ttk::style configure $parent]
+            }
+            ::ttk::style configure $style \
+                -background $ourTtkDefaultBackground \
+                -activebackground  $ourTtkDefaultActiveBackground
+            # puts [list style $style [::ttk::style configure $style]]
+        }
+    }
+
     #========================================
     constructor args {
+        $type ensure-ttk-style-is-fixed
 
         if {[set nav [from args -navigator ""]] ne ""} {
             install myURINavigator using set nav

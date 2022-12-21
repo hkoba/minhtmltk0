@@ -466,6 +466,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
 	    ttk::button $path -takefocus 1 -text $value \
 		-command [list $self node event trigger $node submit \
 			      form $form name $name] {*}$args
+            # Not worked
+            # -class [$type ttk-style-get button]
 	} else {
 	    $self node event on $node click \
 		[list $self node event trigger $node submit \
@@ -480,6 +482,7 @@ snit::macro ::minhtmltk::taghelper::form {} {
         trace add variable $var write \
             [list $form do-trace array write $node]
         ttk::checkbutton $path -variable $var
+        # -class [$type ttk-style-get checkbutton]
     }
 
     method {add input radio} {path node form args} {
@@ -491,6 +494,7 @@ snit::macro ::minhtmltk::taghelper::form {} {
         trace add variable $var write \
             [list $form do-trace scalar write $node]
         ttk::radiobutton $path -variable $var -value $value
+        # -class [$type ttk-style-get radiobutton]
     }
 
     method {add input hidden} {path node form args} {
