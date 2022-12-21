@@ -164,11 +164,26 @@ snit::macro ::minhtmltk::taghelper::form {} {
             if {[set script [$node attr -default "" on$event]] eq ""} continue
             set var [$form node var $node]
             # puts [list add node event on $node $event var: $var script: $script]
-            $self node event on $node $event \
-                [list apply [list args [list apply [list {
-                    self win node form varName args
-                } $script] [$self script-self] $win $node $form $var]]]
+            $self node event configure $node $event \
+                form $form varName $var
         }
+    }
+
+    method {node event configure} {node event args} {
+        if {[set script [$node attr -default "" on$event]] eq ""} return
+        set formalArgs [list self win node]
+        set actualArgs [list [$self script-self] $win $node]
+        foreach {n v} $args {
+            lappend formalArgs $n
+            lappend actualArgs $v
+        }
+        $self node event on $node $event \
+            [list apply \
+                 [list args \
+                      [list apply \
+                           [list [list {*}$formalArgs args] \
+                                $script] \
+                           {*}$actualArgs]]]
     }
 
     #
