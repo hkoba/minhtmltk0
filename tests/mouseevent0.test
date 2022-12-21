@@ -372,5 +372,30 @@ test $P-$D-submit-[incr I] "(global) on submit" -body {
 	       [list node-name back] \
 	      ]
 
+#----------------------------------------
+
+incr D
+.ht Reset
+test $P-$D-button-click "button click" -body {
+
+    set ::DONE ""
+    .ht configure -script-self ::DUMMY
+
+    .ht parse -final {
+        <form>
+        <input type="hidden" name="q1" value="ok">
+        <input id="done" type="button"
+        onclick="set ::DONE [list $self [$node attr id] [$form get_all] [winfo class $win]]" value="Press this to proceed!">
+        </form>
+    }
+
+    invokeClick [.ht search #done]
+
+    set ::DONE
+
+} -result {::DUMMY done {q1 ok} Minhtmltk}
+
+
+#----------------------------------------
 
 tcltest::cleanupTests

@@ -450,6 +450,9 @@ snit::macro ::minhtmltk::taghelper::form {} {
 			      form $form] \
 		{*}$args
 	}
+
+        $self node event configure $node click \
+            form $form
     }
 
     method {add input submit} {path node form args} {
