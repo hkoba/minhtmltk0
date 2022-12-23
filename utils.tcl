@@ -151,5 +151,13 @@ namespace eval ::minhtmltk::utils {
                        [list apply [list args $command]]]
     }
 
+    proc clone-tk-bind {fromClass toClass args} {
+        set except [dict-cut args except {}]
+        foreach ev [bind $fromClass] {
+            if {$ev in $except} continue
+            bind $toClass $ev [bind $fromClass $ev]
+        }
+    }
+
     namespace export *
 }

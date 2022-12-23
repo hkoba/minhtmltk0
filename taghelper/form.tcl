@@ -264,10 +264,10 @@ snit::macro ::minhtmltk::taghelper::form {} {
         }
 
         set menu $path.menu
-        menubutton $path -textvariable $labelVar -indicatoron 1 -menu $menu \
-            -relief raised -highlightthickness 1 -anchor c \
-            -direction flush
+        ttk::menubutton $path -textvariable $labelVar -menu $menu \
+            -class $ourHtmlSelectButton -direction flush
         menu $menu -tearoff 0
+        bindtags $menu [list $menu $ourHtmlSelectMenu all]
 
         # replace early
         $selNode replace $path

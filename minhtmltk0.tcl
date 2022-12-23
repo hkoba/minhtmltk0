@@ -73,6 +73,8 @@ snit::widget minhtmltk {
 
         $type fixup-ttk-style
 
+        $type fixup-select-single-mouseup
+
         bind $ourClass <<DocumentReady>> {%W trigger ready}
     }
 
@@ -314,6 +316,27 @@ snit::widget minhtmltk {
         
 	$self yview $node
 	# XXX: 
+    }
+
+    #========================================
+    typevariable ourHtmlSelectButton HtmlSelectSingleButton
+    typevariable ourHtmlSelectMenu   HtmlSelectSingleMenu
+    typemethod fixup-select-single-mouseup {} {
+        set evList {"<ButtonRelease-1>" "<B1-Leave>"}
+        set class $ourHtmlSelectButton
+        clone-tk-bind TMenubutton $class \
+            except $evList
+        foreach ev $evList {
+            bind $class $ev {::minhtmltk::form::TransferGrab %W}
+        }
+
+        set evList {"<ButtonRelease>"}
+        set class $ourHtmlSelectMenu
+        clone-tk-bind Menu $class \
+            except $evList
+        foreach ev $evList {
+            bind $class $ev {::minhtmltk::form::MenuInvoke %W 1}
+        }
     }
 }
 
