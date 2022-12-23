@@ -14,26 +14,35 @@ snit::macro ::minhtmltk::taghelper::errorlogger {} {
             $self {*}$args
         } error]
         if {$rc} {
-            $self logger error $error $::errorInfo
+            $self logger error $error args $args errorInfo $::errorInfo]
         }
     }
-    method {error get} {} {$self logger get}
+    method {error count} {} {
+        llength [$self error get]
+    }
+    method {error get} {} {
+        lmap i $stateParseErrors {
+            lassign $i kind message detailDict
+            if {$kind ne "error"} continue
+            list $message $detailDict
+        }
+    }
     method {logger get} {} {
         set stateParseErrors
     }
-    method {logger error} {message {detail ""}} {
-        $self logger add error $message $detail
+    method {logger error} {message args} {
+        $self logger add error $message {*}$args
     }
-    method {logger log} {message {detail ""}} {
-        $self logger add log $message $detail
+    method {logger log} {message args} {
+        $self logger add log $message {*}$args
     }
-    method {logger add} {kind message {detail ""}} {
-        lappend stateParseErrors [list $kind $message $detail]
+    method {logger add} {kind message args} {
+        lappend stateParseErrors [list $kind $message $args]
         if {! $options(-debug)} return
         if {[dict exists $options(-logger-exclude) $kind]} return
         if {$options(-debug-fh) ne ""} {
             puts $options(-debug-fh) "$kind $message"
-            puts $options(-debug-fh) $detail
+            puts $options(-debug-fh) $args
         }
     }
 }
