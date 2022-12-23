@@ -1,0 +1,118 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+#========================================
+
+set P select-click
+set type ::minhtmltk
+
+test $P-setup setup -body {
+    deleteWindows
+    winfo children .
+} -result ""
+
+test $P-init load -body {
+    # set abs [file normalize [info script]]
+    # source [file join [file dirname [file dirname $abs]] \
+    # 		[file rootname [file tail $abs]].tcl]
+    set abs [file normalize [info script]]
+    source [file join [file dirname [file dirname $abs]] \
+		minhtmltk0.tcl]
+} -result $type
+
+namespace import ::minhtmltk::utils::*
+
+source [file dirname $abs]/mouse-test-util.tcl
+
+#========================================
+
+test $P-create "" -body {
+    if {[winfo exists .ht]} { rename .ht "" }
+
+    $type .ht -debug [::minhtmltk::utils::default \
+                          ::env(DEBUG_HTMLTK_NODE_EVENT) 0]
+} -result .ht
+
+#========================================
+
+pack .ht -fill both -expand yes
+# .ht configure -emit-ready-immediately yes
+
+.ht parse -final {
+    <form>
+    <select name=q1>
+    <option value="">
+    <option value="foo">FOO
+    <option value="bar">BAR
+    </select>
+    <input type="button" value="continue" onclick="lappend ::DONE foo">
+    </form>
+}
+
+set node [.ht search select]
+set mb   [$node replace]
+set menu [$mb cget -menu]
+
+test $P-select-click "click on <select> should not unpost options" -body {
+    focus .ht
+    set result []
+
+    # puts ::minhtmltk::form=[info commands ::minhtmltk::form::*]
+
+    lassign [nodeCenter $node] cx cy
+
+    update
+    event generate $mb <Enter>
+    event generate $mb <Button-1> \
+        -rootx [expr {[winfo rootx $mb] + $cx}] \
+        -rooty [expr {[winfo rooty $mb] + $cy}]
+    update
+    lappend result [list ismapped [winfo ismapped $menu]]
+
+    proc reader {} {
+        gets stdin ::DONE
+    }
+
+    # set ::DONE ""
+    # fileevent stdin readable reader
+    # vwait ::DONE
+
+    # foreach ev [bind [winfo class $mb]] {
+    #     puts $ev=[bind [winfo class $mb] $ev]
+    # }
+
+    proc isFirst {} {
+        list isFirst [::minhtmltk::utils::default \
+                          ::minhtmltk::form::ourMenubuttonFirstPost ""]
+    }
+
+    event generate $mb [set ev <ButtonRelease-1>]
+    lappend result [isFirst]
+
+    event generate $mb <Leave>
+    event generate $menu <ButtonRelease>
+    update
+
+    # set ::DONE ""
+    # fileevent stdin readable reader
+    # vwait ::DONE
+
+    lappend result [list ismapped [winfo ismapped $menu]]
+
+    lappend result [isFirst]
+
+} -result {{ismapped 1} {isFirst yes} {ismapped 1} {isFirst no}}
+
+
+tcltest::cleanupTests
