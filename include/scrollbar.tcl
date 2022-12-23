@@ -4,7 +4,19 @@ snit::method minhtmltk {scrollbar Fit} {} {
     set xDelta [$self scrollbar hiddenWidth]
     set yDelta [$self scrollbar hiddenHeight]
     $self window.resizeBy $xDelta $yDelta
+    # $self scrollbar update
     list $xDelta $yDelta
+}
+
+snit::method minhtmltk {scrollbar update} {} {
+    foreach sb {hscroll vscroll} {
+        set w $win.sw.$sb
+        $w set {*}[{*}[$w cget -command]]
+    }
+    if {[$win.sw info methods _setdata] ne ""} {
+        $win.sw _setdata
+        # puts [list yDelta old:$yDelta new:[$self scrollbar hiddenHeight]]
+    }
 }
 
 snit::method minhtmltk {scrollbar hiddenWidth} {} {
