@@ -23,6 +23,10 @@ snit::method minhtmltk document.body.scrollWidth {} {
     expr {[winfo width $myHtml] / $ratio}
 }
 
+snit::method minhtmltk {scrollbar verticalPadding} {} {
+    expr {[winfo height $win] - [winfo height $myHtml]}
+}
+
 snit::method minhtmltk {scrollbar hiddenHeight} {} {
     set ratio [$self scrollbar verticalRatio]
     set curHeight [winfo height $myHtml]
