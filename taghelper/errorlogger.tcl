@@ -27,6 +27,9 @@ snit::macro ::minhtmltk::taghelper::errorlogger {} {
             list $message $detailDict
         }
     }
+    method {error add} message {
+        $self logger add error $message
+    }
     method {logger get} {} {
         set stateParseErrors
     }
