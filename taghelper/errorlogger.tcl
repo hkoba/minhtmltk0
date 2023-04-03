@@ -14,7 +14,7 @@ snit::macro ::minhtmltk::taghelper::errorlogger {} {
             $self {*}$args
         } error]
         if {$rc} {
-            $self logger error $error args $args errorInfo $::errorInfo]
+            $self logger error $error args $args errorInfo $::errorInfo
         }
     }
     method {error count} {} {
