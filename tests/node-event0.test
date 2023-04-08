@@ -109,4 +109,47 @@ test $P-$D-select "select onchange" -body {
 
 } -result {foo {q1 apple}}
 
+incr D
+test $P-$D-cyclic-change "programmatical form changes should not invoke onchange" -body {
+    .ht Reset
+
+    proc onchange {self node name} {
+        # puts [list onchange on node $node tag [$node tag] {*}[$node attr]]
+        set form [$self form get 0]
+        $form set $name [expr {1+[$form get $name]}]
+    }
+
+    .ht parse -final {
+        <form>
+        <input type="checkbox" name="q1" value="a" onchange="onchange $self $node counter">
+        <input type="radio"    name="q2" value="b" onchange="onchange $self $node counter">
+        <input type="text"     name="q3" value="c" onchange="onchange $self $node counter">
+        <select name="q4" onchange="onchange $self $node counter">
+        <option value="">↓Please select
+        <option value="apple">I like apples
+        <option value="orange">I like oranges
+        </select>
+
+        <input type="text"     name="counter" value=0 onchange="onchange $self $node counter">
+        </form>
+    }
+
+    # Directly invoke q1, q2
+    [[.ht search {input[name=q1]}] replace] invoke
+    [[.ht search {input[name=q2]}] replace] invoke
+
+    # Insert a character C via event generate. 
+    set entry [[.ht search {input[name=q3]}] replace]
+    $entry icursor end
+    focus -force $entry; update; # needed so [event generate] delivers KeyPress. (taken from tests/ttk/treetags.test)
+    event generate $entry <KeyPress-C>
+
+    # Directly choose selectbox entry 1
+    [[[.ht search {select[name=q4]}] replace] cget -menu] invoke 1
+
+    [.ht form get 0] get_all
+
+    # onchange should be called exactly 4 times.
+} -result {q1 a q2 b q3 cC q4 apple counter 4}
+
 tcltest::cleanupTests
