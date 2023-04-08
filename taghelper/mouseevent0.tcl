@@ -19,6 +19,7 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     option -debug-mouse-event 0
 
     method Press {w x y} {
+        $self node event change allow __scope__
         focus $w
 
         adjust-coords-to $myHtml $w x y
@@ -44,6 +45,7 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     }
 
     method Release {w x y} {
+        $self node event change allow __scope__
         adjust-coords-to $myHtml $w x y
         set nodeDict [dict create]
         foreach node [$myHtml node $x $y] {
@@ -72,6 +74,7 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     }
 
     method Motion {w x y} {
+        $self node event change allow __scope__
         adjust-coords-to $myHtml $w x y
         
         set nodelist [$myHtml node $x $y]
@@ -259,6 +262,10 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
 
     method {node event trigger} {startNode event args} {
         if {![$self state is DocumentReady]} return
+        if {$event eq "change"} {
+            if {[$self node event change is-handling]} return
+            $self node event change set-handling
+        }
         set handlers [$self node event list-handlers $startNode $event \
 			  $args]
         if {$handlers eq ""} {

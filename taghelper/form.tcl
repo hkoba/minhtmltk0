@@ -294,7 +294,13 @@ snit::macro ::minhtmltk::taghelper::form {} {
             set value [dict get $item value]
             $menu add radiobutton \
                 -label [dict get $item label] \
-                -command [list set $var $value]
+                -command [list apply {{self node var value} {
+                    $self node event change suppressing {
+                        set $var $value
+                    }
+                    $self node event change allow __scope__
+                    $self node event trigger $node change
+                }} $self $node $var $value]
             # -value {} doesn't work for radiobutton entry!
             # -variable $var with -command causes double-assignment!
 
@@ -426,6 +432,12 @@ snit::macro ::minhtmltk::taghelper::form {} {
             -textvariable $var \
             -width [$node attr -default 20 size] {*}$args
 
+        bind $path <KeyPress> \
+            [list apply {{self path varName} {
+                puts "KeyPress called, value=[set $varName]"
+                $self node event change allow
+            }} $self $path $var]
+
         trace add variable $var write \
             [list $form do-trace scalar write $node]
 
@@ -481,7 +493,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
         set $var [expr {[$node attr -default "no" checked] ne "no"}]
         trace add variable $var write \
             [list $form do-trace array write $node]
-        ttk::checkbutton $path -variable $var
+        ttk::checkbutton $path -variable $var \
+            -command [list $self node event change allow]
         # -class [$type ttk-style-get checkbutton]
     }
 
@@ -493,7 +506,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
         }
         trace add variable $var write \
             [list $form do-trace scalar write $node]
-        ttk::radiobutton $path -variable $var -value $value
+        ttk::radiobutton $path -variable $var -value $value \
+            -command [list $self node event change allow]
         # -class [$type ttk-style-get radiobutton]
     }
 

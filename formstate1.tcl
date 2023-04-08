@@ -353,7 +353,9 @@ snit::type ::minhtmltk::formstate {
             apply {*}$apply [set $varName]
         }
         if {$options(-window) ne ""
-            && [$options(-window) state is DocumentReady]} {
+            && [$options(-window) state is DocumentReady]
+            && ![$options(-window) node event change is-handling]
+        } {
             if {$options(-debug) >= 2} {
                 puts [list trace scalar write var $varName \
                           value [set $varName] \
@@ -373,7 +375,9 @@ snit::type ::minhtmltk::formstate {
             $self dvars "trace array write " arrayName ix
         }
         if {$options(-window) ne ""
-            && [$options(-window) state is DocumentReady]} {
+            && [$options(-window) state is DocumentReady]
+            && ![$options(-window) node event change is-handling]
+        } {
             if {$options(-debug) >= 2} {
                 puts [list trace array write $node [$node tag] [$node attr]]
             }
