@@ -66,7 +66,7 @@ test $P-$D-input-text "input text onchange" -body {
 } -result {foo {q1 bar}}
 
 incr D
-test $P-$D-input-text "input checkbox, radio onchange" -body {
+test $P-$D-input-checkbox-radio "input checkbox, radio onchange" -body {
     .ht Reset
 
     set ::OUT ""
@@ -87,7 +87,7 @@ test $P-$D-input-text "input checkbox, radio onchange" -body {
 } -result {{foo bar} {q1 x q2 y}}
 
 incr D
-test $P-$D-input-text "select onchange" -body {
+test $P-$D-select "select onchange" -body {
     .ht Reset
 
     set ::OUT ""
