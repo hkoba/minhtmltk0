@@ -378,6 +378,30 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         set result
     }
 
+    variable stateHandlingEventsList ""
+    method {node event change allow} {{scopeVar ""}} {
+        set stateHandlingEventsList ""
+        if {$scopeVar ne ""} {
+            uplevel 1 [list ::minhtmltk::utils::scope_guard $scopeVar \
+                           [list set [myvar stateHandlingEventsList] ""]]
+        }
+    }
+    method {node event change is-handling} {} {
+        expr {"change" in $stateHandlingEventsList}
+    }
+    method {node event change set-handling} {} {
+        if {"change" in $stateHandlingEventsList} return
+        lappend stateHandlingEventsList change
+    }
+    method {node event change suppressing} {command} {
+        ::minhtmltk::utils::scope_guard command \
+            [list set [myvar stateHandlingEventsList] $stateHandlingEventsList]
+        if {"change" ni $stateHandlingEventsList} {
+            lappend stateHandlingEventsList change
+        }
+        uplevel 1 $command
+    }
+
     #========================================
     # install-mouse-handlers is called everytime [$self interactive] is called.
     # So, I want to avoid `+` prefix for bind handlers.
