@@ -247,7 +247,9 @@ snit::macro ::minhtmltk::taghelper::form {} {
                     puts [list setter value $value var $var \
                               varValue [set $var] \
                               labelVar $labelVar \
-                              labelValue [set $labelVar] \
+                              {*}[if {[info exists $labelVar]} {
+                                  list labelValue [set $labelVar]
+                              }] \
                               pos $pos valueList $valueList]
                 }
                 if {$pos >= 0} {
