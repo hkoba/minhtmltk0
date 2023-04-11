@@ -436,7 +436,9 @@ snit::macro ::minhtmltk::taghelper::form {} {
 
         bind $path <KeyPress> \
             [list apply {{self path varName} {
-                puts "KeyPress called, value=[set $varName]"
+                if {[$self cget -debug] >= 2} {
+                    puts "KeyPress called, value=[set $varName]"
+                }
                 $self node event change allow
             }} $self $path $var]
 
