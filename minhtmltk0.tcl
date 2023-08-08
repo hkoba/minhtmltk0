@@ -204,9 +204,33 @@ snit::widget minhtmltk {
         set stateHtmlSource
     }
 
+    variable stateQueryParameterDict [list]
+    method {state parameter set} dict {
+        set stateQueryParameterDict $dict
+    }
+    method {state parameter merge} dict {
+        set stateQueryParameterDict [dict merge $stateQueryParameterDict $dict]
+    }
+    method {state parameter exists} name {
+        dict exists $stateQueryParameterDict $name
+    }
+    method {state parameter get} name {
+        dict get $stateQueryParameterDict $name
+    }
+    method {state parameter default} {name {default ""}} {
+        if {[dict exists $stateQueryParameterDict $name]} {
+            dict get $stateQueryParameterDict $name
+        } else {
+            set default
+        }
+    }
+
     method replace_location_html {uri html {opts {}}} {
         $self Reset
         $myURINavigator location load $uri
+        if {[set param [dict-default $opts -parameter]] ne ""} {
+            $self state parameter merge $param
+        }
         $self parse -final $html
         $myURINavigator history [dict-default $opts history push]\
             $uri
