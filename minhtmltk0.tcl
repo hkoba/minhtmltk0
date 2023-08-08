@@ -15,6 +15,7 @@ namespace eval ::minhtmltk {
 }
 
 source [file dirname [info script]]/formstate1.tcl
+source [file dirname [info script]]/query-string.tcl
 
 source [file dirname [info script]]/taghelper.tcl
 
@@ -228,6 +229,12 @@ snit::widget minhtmltk {
     method replace_location_html {uri html {opts {}}} {
         $self Reset
         $myURINavigator location load $uri
+        set query [$myURINavigator location query]
+        if {[catch {qs2dict $query} dict]} {
+            $self logger error "Parse error in query string: $dict: $query"
+        } else {
+            $self state parameter set $dict
+        }
         if {[set param [dict-default $opts -parameter]] ne ""} {
             $self state parameter merge $param
         }
