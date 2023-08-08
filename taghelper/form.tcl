@@ -430,6 +430,9 @@ snit::macro ::minhtmltk::taghelper::form {} {
     method {add input text} {path node form args} {
         set var [$form node add text $node \
                      [node-atts-assign $node name value]]
+        if {[$self state parameter exists $name]} {
+            set $var [$self state parameter get $name]
+        }
         ::ttk::entry $path \
             -textvariable $var \
             -width [$node attr -default 20 size] {*}$args
