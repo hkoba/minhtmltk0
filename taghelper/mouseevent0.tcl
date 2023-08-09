@@ -52,6 +52,10 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
             dict set nodeDict $node 1
         }
 
+        ::minhtmltk::utils::scope_guard nodeDict \
+            [list $self node event selection release \
+                 [lindex [dict keys $nodeDict] end] $x $y]
+
         set evlist {}
         foreach node [dict keys $stateActiveNodes] {
             $node dynamic clear active
@@ -68,9 +72,6 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         # puts stderr [list Release generates: $evlist]
 
         $self node event generatelist $evlist
-
-        $self node event selection release \
-            [lindex [dict keys $nodeDict] end] $x $y
     }
 
     method Motion {w x y} {

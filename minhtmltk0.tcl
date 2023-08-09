@@ -108,6 +108,9 @@ snit::widget minhtmltk {
     }
 
     #========================================
+    # Debugging aid
+    method myvar varName { myvar $varName }
+
     constructor args {
         $type ensure-ttk-style-is-fixed
 
