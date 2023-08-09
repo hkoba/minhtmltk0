@@ -226,8 +226,11 @@ snit::widget minhtmltk {
         }
     }
 
-    method replace_location_html {uri html {opts {}}} {
+    method replace_location_html {uri html args} {
+        set params [from args -parameter ""]
+        set histMode [from args -history push]
         $self Reset
+        $self configurelist $args
         $myURINavigator location load $uri
         set query [$myURINavigator location query]
         if {[catch {qs2dict $query} dict]} {
@@ -235,12 +238,11 @@ snit::widget minhtmltk {
         } else {
             $self state parameter set $dict
         }
-        if {[set param [dict-default $opts -parameter]] ne ""} {
-            $self state parameter merge $param
+        if {$params ne ""} {
+            $self state parameter merge $params
         }
         $self parse -final $html
-        $myURINavigator history [dict-default $opts history push]\
-            $uri
+        $myURINavigator history $histMode $uri
     }
 
     method Reset {} {
@@ -382,9 +384,7 @@ if {![info level] && [info exists ::argv0]
     }
 
     snit::method minhtmltk Open {file args} {
-        $self configure {*}$args
-        $self replace_location_html $file \
-            [$self read_file $file]
+        $self nav loadURI $file {*}$args
     }
 
     if {$::argv ne ""} {
