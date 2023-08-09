@@ -80,6 +80,10 @@ snit::macro ::minhtmltk::navigator::common_macro {} {
     variable myHistoryList []
     variable myHistoryPos -1
 
+    method {history list} {} {
+        set myHistoryList
+    }
+
     method {history push} uri {
         # puts [list old-hist pos $myHistoryPos list $myHistoryList]
         set lastPos [expr {[llength $myHistoryList] - 1}]
