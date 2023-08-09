@@ -1,0 +1,70 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+package require struct::list
+
+set P minhtmltk
+set type ::$P
+set T GH-6-extparam-other
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+set testFile $testDir/html/006.html
+
+test $T-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+test $T-create create -body {
+    $type .ht -debug 1
+} -result .ht
+
+#========================================
+
+test $T-sanity "sanity check" -body {
+
+    .ht nav loadURI $testFile
+
+    .ht form dump
+
+} -result {{pass ghi secret jkl sel-single {}}}
+
+test $T-explicit "explicit parameter" -body {
+
+    .ht nav loadURI $testFile -parameter {
+        pass xxx
+        secret yyy
+        fruits {apple orange}
+        yesno yes
+        sel-single aaa
+        sel-multi {ccc aaa}
+    }
+
+    .ht form dump
+
+} -result {{pass xxx secret yyy fruits {apple orange} yesno yes sel-single aaa sel-multi {aaa ccc}}}
+
+test $T-qs "text with query string" -body {
+
+    .ht nav loadURI $testFile?pass=aaa&secret=bbb&fruits=apple&fruits=lemon&yesno=no&sel-single=bbb&sel-multi=bbb&sel-multi=aaa
+
+
+    .ht form dump
+
+} -result {{pass aaa secret bbb fruits {apple lemon} yesno no sel-single bbb sel-multi {aaa bbb}}}
+
+#========================================
+destroy .ht
+
+tcltest::cleanupTests

@@ -15,6 +15,7 @@ namespace eval ::minhtmltk {
 }
 
 source [file dirname [info script]]/formstate1.tcl
+source [file dirname [info script]]/query-string.tcl
 
 source [file dirname [info script]]/taghelper.tcl
 
@@ -204,12 +205,45 @@ snit::widget minhtmltk {
         set stateHtmlSource
     }
 
-    method replace_location_html {uri html {opts {}}} {
+    variable stateQueryParameterDict [list]
+    method {state parameter set} dict {
+        set stateQueryParameterDict $dict
+    }
+    method {state parameter merge} qslist {
+        set stateQueryParameterDict \
+            [dict merge $stateQueryParameterDict [qslist2dict $qslist]]
+    }
+    method {state parameter exists} name {
+        dict exists $stateQueryParameterDict $name
+    }
+    method {state parameter get} name {
+        dict get $stateQueryParameterDict $name
+    }
+    method {state parameter default} {name {default ""}} {
+        if {[dict exists $stateQueryParameterDict $name]} {
+            dict get $stateQueryParameterDict $name
+        } else {
+            set default
+        }
+    }
+
+    method replace_location_html {uri html args} {
+        set params [from args -parameter ""]
+        set histMode [from args -history push]
         $self Reset
+        $self configurelist $args
         $myURINavigator location load $uri
+        set query [$myURINavigator location query]
+        if {[catch {qs2dict $query} dict]} {
+            $self logger error "Parse error in query string: $dict: $query"
+        } else {
+            $self state parameter set $dict
+        }
+        if {$params ne ""} {
+            $self state parameter merge $params
+        }
         $self parse -final $html
-        $myURINavigator history [dict-default $opts history push]\
-            $uri
+        $myURINavigator history $histMode $uri
     }
 
     method Reset {} {
@@ -351,9 +385,7 @@ if {![info level] && [info exists ::argv0]
     }
 
     snit::method minhtmltk Open {file args} {
-        $self configure {*}$args
-        $self replace_location_html $file \
-            [$self read_file $file]
+        $self nav loadURI $file {*}$args
     }
 
     if {$::argv ne ""} {

@@ -102,6 +102,26 @@ snit::macro ::minhtmltk::taghelper::form {} {
         array names stateFormNameDict {*}$args
     }
 
+    method {forms map-method} {method args} {
+        set dump []
+        foreach form $stateFormList {
+            lappend dump [apply [list form "\$form [list $method {*}$args]"] $form]
+        }
+        set dump
+    }
+
+    method {form dump} {} {
+        # XXX: get_all vs node serialize
+        $self forms map-method get_all
+    }
+    method {form restore} dump {
+        foreach state $dump form $stateFormList {
+            foreach {name value} $state {
+                $form set $name $value
+            }
+        }
+    }
+
     method {form get} {ix {fallback yes}} {
         if {[string is integer $ix]} {
             if {$ix == 0 && ![llength $stateFormList]} {
@@ -239,6 +259,15 @@ snit::macro ::minhtmltk::taghelper::form {} {
         set var [$form node add single $selNode [dict create name $name]]
         set labelVar ${var}_label
 
+        if {[$self state parameter exists $name]} {
+            set value [$self state parameter get $name]
+            set pos [lsearch -exact $valueList $value]
+            if {$pos >= 0} {
+                set $var $value
+                set $labelVar [lindex $labelList $pos]
+            }
+        }
+
         $form node trace configure $selNode \
             setter [list {{self selNode path form name var labelVar labelList value} {
                 set valueList [$form choicelist $name]
@@ -360,6 +389,14 @@ snit::macro ::minhtmltk::taghelper::form {} {
         listbox $path -selectmode extended
         $path insert end {*}$labelList
         $path selection clear 0 end
+        if {[$self state parameter exists $name]} {
+            set selected []
+            foreach ix [$self state parameter get $name] {
+                set pos [lsearch -exact [$form choicelist $name] $ix]
+                if {$pos < 0} return
+                lappend selected $pos
+            }
+        }
         foreach sel $selected {
             $path selection set $sel
         }
@@ -430,6 +467,9 @@ snit::macro ::minhtmltk::taghelper::form {} {
     method {add input text} {path node form args} {
         set var [$form node add text $node \
                      [node-atts-assign $node name value]]
+        if {[$self state parameter exists $name]} {
+            set $var [$self state parameter get $name]
+        }
         ::ttk::entry $path \
             -textvariable $var \
             -width [$node attr -default 20 size] {*}$args
@@ -495,6 +535,11 @@ snit::macro ::minhtmltk::taghelper::form {} {
         set var [$form node add multi $node \
                      [node-atts-assign $node name {value on}]]
         set $var [expr {[$node attr -default "no" checked] ne "no"}]
+        if {[$self state parameter exists $name]} {
+            set res [expr {$value in [$self state parameter get $name]}]
+            # puts "var $var, testing name=$name value=$value. parameter list:[$self state parameter get $name] => $res"
+            set $var $res
+        }
         trace add variable $var write \
             [list $form do-trace array write $node]
         ttk::checkbutton $path -variable $var \
@@ -508,6 +553,9 @@ snit::macro ::minhtmltk::taghelper::form {} {
         if {[$node attr -default "no" checked] ne "no"} {
             set $var $value
         }
+        if {[$self state parameter exists $name]} {
+            set $var [$self state parameter get $name]
+        }
         trace add variable $var write \
             [list $form do-trace scalar write $node]
         ttk::radiobutton $path -variable $var -value $value \
@@ -518,7 +566,9 @@ snit::macro ::minhtmltk::taghelper::form {} {
     method {add input hidden} {path node form args} {
         set var [$form node add text $node \
                      [node-atts-assign $node name value]]
-
+        if {[$self state parameter exists $name]} {
+            set $var [$self state parameter get $name]
+        }
         trace add variable $var write \
             [list $form do-trace scalar write $node]
     }

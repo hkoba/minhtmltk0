@@ -60,7 +60,12 @@ snit::macro ::minhtmltk::navigator::common_macro {} {
         # nextObj lives until end of this method scope.
         $self parse-uri-as nextObj [$self resolve $uri]
 
-        $self scheme [$nextObj scheme] read_from $nextObj $args
+        set scheme [$nextObj scheme]
+        set method [list scheme $scheme read_from]
+        if {[$self info methods $method] eq ""} {
+            error "Unsupported URI scheme $scheme: $uri"
+        }
+        $self {*}$method $nextObj {*}$args
     }
 
     method parse-uri-as {objVar uri} {
@@ -74,6 +79,10 @@ snit::macro ::minhtmltk::navigator::common_macro {} {
     #----------------------------------------
     variable myHistoryList []
     variable myHistoryPos -1
+
+    method {history list} {} {
+        set myHistoryList
+    }
 
     method {history push} uri {
         # puts [list old-hist pos $myHistoryPos list $myHistoryList]
@@ -95,7 +104,7 @@ snit::macro ::minhtmltk::navigator::common_macro {} {
         error "Not yet impl"
     }
 
-    # XXX: resume formstate!
+    # XXX: resume explicit external parameters and form state!
     method {history go-offset} {offset} {
         # puts [list old-hist pos $myHistoryPos list $myHistoryList]
         set lastPos [expr {[llength $myHistoryList] - 1}]
@@ -103,7 +112,7 @@ snit::macro ::minhtmltk::navigator::common_macro {} {
         if {$nextPos >= 0 && $nextPos <= $lastPos} {
             set myHistoryPos $nextPos
             $self loadURI [lindex $myHistoryList $myHistoryPos] \
-                history bypass
+                -history bypass
             # puts [list new-hist pos $myHistoryPos list $myHistoryList]
         }
     }

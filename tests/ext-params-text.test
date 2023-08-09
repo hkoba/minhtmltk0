@@ -1,0 +1,70 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+package require struct::list
+
+set P minhtmltk
+set type ::$P
+set T GH-6-extparam-text
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+set testFile $testDir/html/005.html
+
+test $T-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+test $T-create create -body {
+    $type .ht -debug yes
+} -result .ht
+
+#========================================
+
+test $T-sanity "sanity check" -body {
+
+    .ht nav loadURI $testFile
+
+    .ht form dump
+
+} -result {{foo abc bar def}}
+
+test $T-explicit "explicit parameter" -body {
+
+    .ht nav loadURI $testFile -parameter {foo xxx bar yyy}
+
+    .ht form dump
+
+} -result {{foo xxx bar yyy}}
+
+test $T-qs "text with query string" -body {
+
+    .ht nav loadURI $testFile?foo=aaa&bar=bbb
+
+    .ht form dump
+
+} -result {{foo aaa bar bbb}}
+
+test $T-explicit-wins "explicit parameter wins over query string" -body {
+
+    .ht nav loadURI $testFile?foo=aaa&bar=bbb -parameter {foo xxx}
+
+    .ht form dump
+
+} -result {{foo xxx bar bbb}}
+
+#========================================
+destroy .ht
+
+tcltest::cleanupTests
