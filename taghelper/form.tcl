@@ -102,6 +102,26 @@ snit::macro ::minhtmltk::taghelper::form {} {
         array names stateFormNameDict {*}$args
     }
 
+    method {forms map-method} {method args} {
+        set dump []
+        foreach form $stateFormList {
+            lappend dump [apply [list form "\$form [list $method {*}$args]"] $form]
+        }
+        set dump
+    }
+
+    method {form dump} {} {
+        # XXX: get_all vs node serialize
+        $self forms map-method get_all
+    }
+    method {form restore} dump {
+        foreach state $dump form $stateFormList {
+            foreach {name value} $state {
+                $form set $name $value
+            }
+        }
+    }
+
     method {form get} {ix {fallback yes}} {
         if {[string is integer $ix]} {
             if {$ix == 0 && ![llength $stateFormList]} {

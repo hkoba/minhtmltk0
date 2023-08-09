@@ -100,7 +100,7 @@ snit::macro ::minhtmltk::navigator::common_macro {} {
         error "Not yet impl"
     }
 
-    # XXX: resume formstate!
+    # XXX: resume explicit external parameters and form state!
     method {history go-offset} {offset} {
         # puts [list old-hist pos $myHistoryPos list $myHistoryList]
         set lastPos [expr {[llength $myHistoryList] - 1}]
