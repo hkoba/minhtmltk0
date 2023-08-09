@@ -209,8 +209,9 @@ snit::widget minhtmltk {
     method {state parameter set} dict {
         set stateQueryParameterDict $dict
     }
-    method {state parameter merge} dict {
-        set stateQueryParameterDict [dict merge $stateQueryParameterDict $dict]
+    method {state parameter merge} qslist {
+        set stateQueryParameterDict \
+            [dict merge $stateQueryParameterDict [qslist2dict $qslist]]
     }
     method {state parameter exists} name {
         dict exists $stateQueryParameterDict $name

@@ -1,15 +1,19 @@
 namespace eval ::minhtmltk {}
 
 proc ::minhtmltk::qs2dict {queryString args} {
-    set query [dict create]
-    foreach {name value} [qs2list $queryString {*}$args] {
-        if {[dict exists $query $name]} {
-            dict lappend query $name $value
+    qslist2dict [qs2list $queryString {*}$args]
+}
+
+proc ::minhtmltk::qslist2dict {qslist} {
+    set dict [dict create]
+    foreach {name value} $qslist {
+        if {[dict exists $dict $name]} {
+            dict lappend dict $name $value
         } else {
-            dict set query $name $value
+            dict set dict $name $value
         }
     }
-    set query
+    set dict
 }
 
 proc ::minhtmltk::qs2list {queryString args} {
