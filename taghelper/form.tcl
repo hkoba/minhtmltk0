@@ -470,6 +470,9 @@ snit::macro ::minhtmltk::taghelper::form {} {
         if {[$self state parameter exists $name]} {
             set $var [$self state parameter get $name]
         }
+        if {[$node attr -default no readonly] ne "no"} {
+            lappend args -state readonly
+        }
         ::ttk::entry $path \
             -textvariable $var \
             -width [$node attr -default 20 size] {*}$args
