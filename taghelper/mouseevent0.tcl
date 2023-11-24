@@ -19,32 +19,50 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     option -debug-mouse-event 0
 
     method Press {w x y} {
+        if {$options(-debug-mouse-event) >= 3} {
+            puts stderr [list Press: $w $x $y]
+        }
         $self node event change allow __scope__
         focus $w
 
         adjust-coords-to $myHtml $w x y
         set nodelist [$myHtml node $x $y]
         # XXX: Selection handling, and its prevention
-        
+        if {$options(-debug-mouse-event) >= 2} {
+            puts stderr [list Press: nodelist $nodelist]
+        }
+
         foreach startNode $nodelist {
             set startNode [parent-of-textnode $startNode]
             for-upward-node node $startNode {
                 dict set stateActiveNodes $node 1
             }
         }
-        
-	set evlist {}
+
+        if {$options(-debug-mouse-event) >= 2} {
+            puts stderr [list Press> stateActiveNodes: [dict keys $stateActiveNodes]]
+        }
+
+        set evlist {}
         foreach node [dict keys $stateActiveNodes] {
             $node dynamic set active
             lappend evlist mousedown $node
         }
-        
+
+        if {$options(-debug-mouse-event) >= 2} {
+            puts stderr [list Press> evlist $evlist]
+        }
+
         set rc [$self node event generatelist $evlist]
 
         $self node event selection press $rc [lindex $nodelist end] $x $y
     }
 
     method Release {w x y} {
+        if {$options(-debug-mouse-event) >= 3} {
+            puts stderr [list Release: $w $x $y]
+        }
+
         $self node event change allow __scope__
         adjust-coords-to $myHtml $w x y
         set nodeDict [dict create]
@@ -70,11 +88,18 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         }
 
         # puts stderr [list Release generates: $evlist]
+        if {$options(-debug-mouse-event) >= 2} {
+            puts stderr [list Release> evlist $evlist]
+        }
 
         $self node event generatelist $evlist
     }
 
     method Motion {w x y} {
+        if {$options(-debug-mouse-event) >= 3} {
+            puts stderr [list Motion: $w $x $y]
+        }
+
         $self node event change allow __scope__
         adjust-coords-to $myHtml $w x y
         
@@ -482,6 +507,10 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     variable stateMouseToIdx ""
 
     method {node event selection press} {successEv node x y} {
+        if {$options(-debug-mouse-event) >= 2} {
+            puts stderr [list selection-press successEv $successEv $node $x $y]
+        }
+
         $self selection clear
         if {$successEv} {
             set stateMouseDown yes
@@ -495,6 +524,10 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     }
 
     method {node event selection release} {node x y} {
+        if {$options(-debug-mouse-event) >= 2} {
+            puts stderr [list selection-release $node $x $y]
+        }
+
         set stateMouseDown ""
     }
 
@@ -507,7 +540,7 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         set stateMouseFromNode ""
         set stateMouseToNode ""
         
-        # Memo: stateMouseFromNode が "" にされた時に bacgrace を出す
+        # Memo: stateMouseFromNode が "" にされた時に backtrace を出す
         # set vn [myvar stateMouseFromNode]
         # trace add variable $vn write \
         #     [list apply [list [list self varName args] {
@@ -520,6 +553,9 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     method {selection adjust} {node x y} {
         if {$node eq ""} {
             set node [$myHtml node]
+        }
+        if {$options(-debug-mouse-event) >= 3} {
+            puts [list selection-adjust $node $x $y]
         }
 
         set to [$myHtml node -index $x $y]
