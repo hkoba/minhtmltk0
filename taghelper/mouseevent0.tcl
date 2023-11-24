@@ -65,29 +65,35 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
 
         $self node event change allow __scope__
         adjust-coords-to $myHtml $w x y
-        set nodeDict [dict create]
-        foreach node [$myHtml node $x $y] {
-            dict set nodeDict $node 1
+        set nodelist [$myHtml node $x $y]
+        if {$options(-debug-mouse-event) >= 2} {
+            puts stderr [list Release: nodelist $nodelist]
         }
 
         ::minhtmltk::utils::scope_guard nodeDict \
             [list $self node event selection release \
-                 [lindex [dict keys $nodeDict] end] $x $y]
+                 [lindex $nodelist end] $x $y]
 
         set evlist {}
-        foreach node [dict keys $stateActiveNodes] {
-            $node dynamic clear active
-            lappend evlist mouseup $node
-            if {[dict exists $nodeDict $node]} continue
-            dict set nodeDict $node 1
-        }
-        set stateActiveNodes [dict create]
-        
-        foreach node [dict keys $nodeDict] {
-            lappend evlist click $node
+        foreach startNode $nodelist {
+            set startNode [parent-of-textnode $startNode]
+            for-upward-node node $startNode {
+                lappend evlist mouseup $node
+                if {[dict exists $stateActiveNodes $node]} {
+                    # Generate click event if node was active
+                    dict unset stateActiveNodes $node
+                    $node dynamic clear active
+                    lappend evlist click $node
+                }
+            }
         }
 
-        # puts stderr [list Release generates: $evlist]
+        # Clear rest of dynamic active
+        foreach node [dict keys $stateActiveNodes] {
+            $node dynamic clear active
+        }
+        set stateActiveNodes [dict create]
+
         if {$options(-debug-mouse-event) >= 2} {
             puts stderr [list Release> evlist $evlist]
         }
