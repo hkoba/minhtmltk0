@@ -1,0 +1,129 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+    
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+package require struct::list
+
+set P minhtmltk
+set type ::$P
+set T GH-8-button-click
+
+test $P-setup setup -body {
+    deleteWindows
+    winfo children .
+} -result ""
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+set testFile $testDir/html/007.html
+
+test $T-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+namespace import ::minhtmltk::utils::*
+
+source $testDir/mouse-test-util.tcl
+
+#========================================
+
+test $P-create "" -body {
+    $type .ht -debug yes
+} -result .ht
+
+
+#========================================
+
+test $T-load "load the test file" -body {
+
+    .ht nav loadURI $testFile
+
+    llength [.ht search {input[type=button]}]
+
+} -result 2
+
+test $T-selection-1 "selection" -body {
+
+    nodeCenter [.ht search h2] no
+
+    .ht configure -debug-mouse-event \
+        [::minhtmltk::utils::default ::env(DEBUG_HTMLTK_MOUSE_EVENT) 0]
+    .ht Press   .ht 25 29
+    .ht Motion  .ht 25 120
+    .ht Release .ht 25 160
+
+    #.ht configure -debug-mouse-event 0
+
+    .ht selection get
+
+} -result "AA
+BBB
+
+C"
+
+lassign [.ht search {input[type=button]}] input1 input2
+
+test $T-click-ok1 "successful click" -body {
+    # puts "input1 [nodeCenter $input1]"
+    # => 33 93
+    set ::OUT ""; .ht selection clear
+
+    .ht Press .ht {*}[nodeCenter $input1]
+    .ht Release .ht {*}[nodeCenter $input1]
+
+    list $::OUT [.ht selection get]
+} -result {{clicked test1} {}}
+
+test $T-click-ok2 "successful click with motion" -body {
+    set ::OUT ""; .ht selection clear
+
+    .ht Press .ht {*}[nodeCenter $input1]
+    .ht Motion .ht 40 93
+    .ht Motion .ht 40 120
+    .ht Motion .ht 40 160
+    .ht Release .ht {*}[nodeCenter $input1]
+
+    list $::OUT [.ht selection get]
+} -result {{clicked test1} {}}
+
+test $T-click-ng1 "Abandoned click" -body {
+    set ::OUT ""; .ht selection clear
+
+    .ht Press .ht {*}[nodeCenter $input1]
+    .ht Motion .ht 40 93
+    .ht Release .ht {*}[nodeCenter $input2]
+
+    list $::OUT [.ht selection get]
+} -result {{} {}}
+
+
+test $T-selection-2 "selection again" -body {
+
+    nodeCenter [.ht search h2] no
+
+    # .ht configure -debug-mouse-event 3
+    .ht Press   .ht 25 29
+    .ht Motion  .ht 25 120
+    .ht Release .ht 25 160
+
+    .ht selection get
+
+} -result "AA
+BBB
+
+C"
+
+#----------------------------------------
+
+tcltest::cleanupTests
