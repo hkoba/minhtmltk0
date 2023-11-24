@@ -503,6 +503,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
 
     method {add input button} {path node form args} {
 	if {$options(-use-tk-button)} {
+            # XXX: Too early to get node property
+            # set cssProps [$node property]
 	    set text [$node attr -default [from args -text] value]
 	    ttk::button $path -takefocus 1 -text $text \
 		-command [list $self node event trigger $node click \
