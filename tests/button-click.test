@@ -55,6 +55,8 @@ test $T-load "load the test file" -body {
 
 test $T-selection-1 "selection" -body {
 
+    # XXX: Below is required for [.ht selection get]
+    # probably bbox computation triggers something
     nodeCenter [.ht search h2] no
 
     .ht configure -debug-mouse-event \

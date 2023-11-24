@@ -55,7 +55,10 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
 
         set rc [$self node event generatelist $evlist]
 
-        $self node event selection press $rc [lindex $nodelist end] $x $y
+        # Start text selection only if click handler is empty
+        if {[$self node event list-handlers [lindex $nodelist end] click] eq ""} {
+            $self node event selection press $rc [lindex $nodelist end] $x $y
+        }
     }
 
     method Release {w x y} {
@@ -537,6 +540,9 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         set stateMouseDown ""
     }
 
+    method {selection exists} {} {
+        expr {$stateMouseFromNode ne "" && $stateMouseToNode ne ""}
+    }
     method {selection clear} {} {
         # node is ignored.
 
