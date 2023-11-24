@@ -26,6 +26,11 @@ test $T-init load -body {
     source [file join $libDir ${P}0.tcl]
 } -result $type
 
+test $P-setup setup -body {
+    deleteWindows
+    winfo children .
+} -result ""
+
 test $T-create create -body {
     $type .ht -debug 1
 } -result .ht
