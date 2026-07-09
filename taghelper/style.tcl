@@ -10,6 +10,14 @@ snit::macro ::minhtmltk::taghelper::style {} {
     method {link-rel stylesheet add} node {
         if {[set href [$node attr -default "" href]] eq ""} return
 
+        if {[regexp {^data:text/css(;[^,]*)?,(.*)$} $href -> opts css]} {
+            # Inline stylesheet in a data: URI (e.g. the acid2
+            # "appendix stylesheet").
+            $self style add-from [$self location get] \
+                [::minhtmltk::taghelper::percent-decode $css]
+            return
+        }
+
         $self style import-from author [$self location get] $href
     }
 
@@ -32,7 +40,21 @@ snit::macro ::minhtmltk::taghelper::style {} {
         lappend stateStyleList $style
         $myHtml style -id $id \
             -importcmd [list $self style import-from $id $uri] \
+            -urlcmd [list $self style resolve-url $uri] \
             [string map [list \r ""] $style]
+    }
+
+    # Resolve url(...) values relative to the stylesheet they appear
+    # in, so that e.g. bootstrap's url("../img/glyphicons-halflings.png")
+    # reaches -imagecmd already resolved.
+    method {style resolve-url} {baseURI uri} {
+        if {[regexp {^data:} $uri]} {
+            return $uri
+        }
+        if {[catch {$self nav resolve $uri $baseURI} resolved]} {
+            return $uri
+        }
+        return $resolved
     }
 
     # @import

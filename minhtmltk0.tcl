@@ -251,6 +251,7 @@ snit::widget minhtmltk {
 
     method Reset {} {
         $myHtml reset
+        $self image reset
         foreach form [list {*}$stateFormList $stateOuterForm] {
             if {$form eq ""} continue
             $form destroy
@@ -288,12 +289,14 @@ snit::widget minhtmltk {
     ::minhtmltk::taghelper style
     ::minhtmltk::taghelper anchor
     ::minhtmltk::taghelper link
+    ::minhtmltk::taghelper imagecmd
+    ::minhtmltk::taghelper object
 
     # To be handled
     list {
         button
         iframe menu
-        base meta title object embed
+        base meta title embed
     }
 
     method install-html-handlers {} {
