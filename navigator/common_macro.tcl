@@ -56,16 +56,34 @@ snit::macro ::minhtmltk::navigator::common_macro {} {
         $base resolve $uri
     }
 
-    method loadURI {uri args} {
-        # nextObj lives until end of this method scope.
-        $self parse-uri-as nextObj [$self resolve $uri]
+    #
+    # [read] = content fetch only (no browser side effects).
+    # Dispatches to [scheme $scheme read] and returns a response dict:
+    #   uri          effective URI (after http redirects)
+    #   content-type "" if unknown
+    #   body         decoded text, or raw bytes with [-mode binary]
+    # (http adds a status key; read it with dict-default.)
+    #
+    method read {uri args} {
+        # uriObj lives until end of this method scope.
+        $self parse-uri-as uriObj [$self resolve $uri]
 
-        set scheme [$nextObj scheme]
-        set method [list scheme $scheme read_from]
+        set scheme [$uriObj scheme]
+        set method [list scheme $scheme read]
         if {[$self info methods $method] eq ""} {
             error "Unsupported URI scheme $scheme: $uri"
         }
-        $self {*}$method $nextObj {*}$args
+        $self {*}$method $uriObj {*}$args
+    }
+
+    #
+    # [loadURI] = navigation: [read] + content replacement
+    # ([$myBrowser load] also updates location/history).
+    #
+    method loadURI {uri args} {
+        set response [$self read $uri]
+        $myBrowser load \
+            [dict get $response uri] [dict get $response body] {*}$args
     }
 
     method parse-uri-as {objVar uri} {

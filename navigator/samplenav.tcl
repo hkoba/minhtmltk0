@@ -10,8 +10,18 @@ source [file dirname [info script]]/scheme/file.tcl
 snit::type ::minhtmltk::navigator::localnav {
 
     #
-    # Import common navigator behaviors like (loadUI -> scheme) dispatching.
+    # Import common navigator behaviors like [read]/[loadURI].
     # Also location/history related methods are imported.
+    #
+    # Naming convention:
+    # * [read]    = content fetch only. Resolves the URI, dispatches to
+    #               [scheme $scheme read] and returns a response dict
+    #               {uri content-type body} (http adds status).
+    #               No browser side effects.
+    # * [load]    = content replacement. This lives on the browser
+    #               widget side ([$myBrowser load $uri $html]), which
+    #               also updates location/history.
+    # * [loadURI] = navigation entrance: [read] + [$myBrowser load].
     #
     ::minhtmltk::navigator::common_macro
 
@@ -22,18 +32,19 @@ snit::type ::minhtmltk::navigator::localnav {
     #
     # Above macro defines followings:
     #
-    # method {scheme file read_from} {uriObj opts} {
-    #     set html [$self read_text [$uriObj path]]
-    #     $myBrowser replace_location_html [$uriObj get] $html $opts
+    # method {scheme file read} {uriObj args} {
+    #     set mode [from args -mode text]
+    #     set path [$uriObj path]
+    #     set body [... read_file, -translation binary if binary mode ...]
+    #     dict create uri [$uriObj get] content-type [...guess...] body $body
     # }
     #
-    # method {scheme {} read_from} {uriObj opts} {
-    #     $self scheme file read_from $uriObj $opts
+    # method {scheme {} read} {uriObj args} {
+    #     $self scheme file read $uriObj {*}$args
     # }
     #
-    # method read_text uri {
-    #     ::minhtmltk::utils::read_file $uri
-    # }
+    # See also scheme/http.tcl (http_scheme) and webnav.tcl, which
+    # compose file + http/https the same way.
 
     constructor args {
         #

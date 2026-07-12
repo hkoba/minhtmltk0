@@ -20,6 +20,7 @@ source [file dirname [info script]]/query-string.tcl
 source [file dirname [info script]]/taghelper.tcl
 
 source [file dirname [info script]]/navigator/localnav.tcl
+source [file dirname [info script]]/navigator/webnav.tcl
 
 snit::widget minhtmltk {
     ::minhtmltk::taghelper::start
@@ -59,8 +60,6 @@ snit::widget minhtmltk {
     delegate method location to myURINavigator
 
     option -html ""
-
-    option -encoding ""
 
     option -install-default-handlers yes
 
@@ -115,6 +114,12 @@ snit::widget minhtmltk {
         $type ensure-ttk-style-is-fixed
 
         if {[set nav [from args -navigator ""]] ne ""} {
+            if {[info commands $nav] eq ""
+                && [info commands ::minhtmltk::navigator::$nav] ne ""} {
+                # -navigator also accepts a navigator type name
+                # (e.g. webnav), useful from the command line.
+                set nav [::minhtmltk::navigator::$nav ${selfns}::navigator]
+            }
             install myURINavigator using set nav
         } else {
             install myURINavigator \
@@ -156,7 +161,7 @@ snit::widget minhtmltk {
     }
 
     onconfigure -html html {
-        $self replace_location_html "" $html
+        $self load "" $html
     }
 
     method interactive {} {
@@ -230,7 +235,12 @@ snit::widget minhtmltk {
         }
     }
 
-    method replace_location_html {uri html args} {
+    #
+    # [load] = content replacement (+ location/history update).
+    # Content fetching is not done here; that is [$self nav read]
+    # (see navigator/common_macro.tcl for the naming convention).
+    #
+    method load {uri html args} {
         set params [from args -parameter ""]
         set histMode [from args -history push]
         $self Reset
@@ -247,6 +257,11 @@ snit::widget minhtmltk {
         }
         $self parse -final $html
         $myURINavigator history $histMode $uri
+    }
+
+    # Deprecated older name of [load].
+    method replace_location_html {uri html args} {
+        $self load $uri $html {*}$args
     }
 
     method Reset {} {

@@ -1,0 +1,140 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+set P minhtmltk
+set type ::$P
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+
+source [file join $testDir http-test-util.tcl]
+
+test $P-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+#----------------------------------------
+# stub httpd
+
+set gif1x1 [binary decode base64 \
+                R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==]
+
+set indexHtml {
+    <html>
+    <link rel="stylesheet" href="/style.css">
+    <body>
+    <h2>FromHttp!</h2>
+    <img src="/img.gif">
+    </body>
+    </html>
+}
+
+set secondHtml {
+    <html><body><h2>Second!</h2></body></html>
+}
+
+set port [::minhtmltk::test::httpd-start [dict create \
+    /index.html  [list 200 text/html $indexHtml] \
+    /second.html [list 200 text/html $secondHtml] \
+    /style.css   [list 200 text/css {h2 {background: red}}] \
+    /img.gif     [list 200 image/gif $gif1x1] \
+    /redirect    [list 302 /index.html {}] \
+]]
+
+set baseURL http://127.0.0.1:$port
+
+#----------------------------------------
+# navigator-level [read] (fetch only, no browser)
+
+test webnav-read-html "scheme http read returns a response dict" -body {
+    set nav [::minhtmltk::navigator::webnav %AUTO%]
+    set res [$nav read $baseURL/index.html]
+    list [dict get $res status] [dict get $res content-type] \
+        [regexp FromHttp! [dict get $res body]]
+} -result {200 text/html 1}
+
+test webnav-read-uri "response uri is the effective URI" -body {
+    dict get [$nav read $baseURL/index.html] uri
+} -result $baseURL/index.html
+
+test webnav-read-redirect "3xx is followed; final uri is reported" -body {
+    set res [$nav read $baseURL/redirect]
+    list [dict get $res status] [dict get $res uri] \
+        [regexp FromHttp! [dict get $res body]]
+} -result [list 200 $baseURL/index.html 1]
+
+test webnav-read-binary "-mode binary returns raw bytes" -body {
+    string length \
+        [dict get [$nav read $baseURL/img.gif -mode binary] body]
+} -result [string length $gif1x1]
+
+test webnav-read-404 "non-2xx raises" -body {
+    list [catch {$nav read $baseURL/no-such} error] $error
+} -result [list 1 "HTTP 404: $baseURL/no-such"]
+
+$nav destroy
+
+test localnav-scheme-guard "localnav (default) has no http scheme" -body {
+    set nav [::minhtmltk::navigator::localnav %AUTO%]
+    set rc [catch {$nav read $baseURL/index.html} error]
+    $nav destroy
+    list $rc $error
+} -result [list 1 "Unsupported URI scheme http: $baseURL/index.html"]
+
+#----------------------------------------
+# widget-level: -navigator webnav opt-in
+
+test webnav-widget-create "" -body {
+    if {[winfo exists .ht]} { rename .ht "" }
+
+    $type .ht -navigator webnav -uri $baseURL/index.html
+} -result .ht
+
+pack .ht
+update
+
+test webnav-widget-body "" -body {
+    [[.ht search h2] children] text
+} -result FromHttp!
+
+test webnav-widget-location "" -body {
+    .ht location get
+} -result $baseURL/index.html
+
+test webnav-widget-stylesheet "http stylesheet is applied" -body {
+    [.ht search h2] property background-color
+} -result red
+
+test webnav-widget-img "http image is loaded via -imagecmd" -body {
+    set img [.ht image load $baseURL/img.gif]
+    list [expr {$img ne ""}] [image width $img] [image height $img]
+} -result {1 1 1}
+
+test webnav-widget-history "relative loadURI over http, history push" -body {
+    .ht nav loadURI /second.html
+
+    list [[[.ht search h2] children] text] [.ht location get] \
+        [llength [.ht nav history list]]
+} -result [list Second! $baseURL/second.html 2]
+
+test webnav-widget-history-back "" -body {
+    .ht nav history go-offset -1
+
+    list [[[.ht search h2] children] text] [.ht location get]
+} -result [list FromHttp! $baseURL/index.html]
+
+destroy .ht
+::minhtmltk::test::httpd-stop
+
+tcltest::cleanupTests

@@ -66,6 +66,6 @@ snit::macro ::minhtmltk::taghelper::style {} {
         }
 
         $self style add-from $actualURI \
-            [$self nav read_text $actualURI]
+            [dict get [$self nav read $actualURI] body]
     }
 }
