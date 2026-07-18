@@ -1,0 +1,79 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+set P minhtmltk
+set type ::$P
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+
+test $P-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+# The <script type="tcl"> handler is not part of the core library.
+source [file join $libDir include script-tag.tcl]
+
+#----------------------------------------
+
+set testHtml {
+    <html><body>
+    <script type="tcl">set ::SCRIPT_RAN 1</script>
+    <input type="button" name="b1" value="B1" onclick="set ::CLICKED 1">
+    </body></html>
+}
+
+# Returns: {script-ran onclick-registered ignored-logged}
+proc probe-scripts {w} {
+    set btn [$w search {input[type=button]}]
+    list $::SCRIPT_RAN \
+        [dict exists [$w node event dump-handlers] $btn] \
+        [regexp {allow-script is off} [$w logger get]]
+}
+
+#----------------------------------------
+
+test allow-script-default "default navigator => scripts allowed" -body {
+    set ::SCRIPT_RAN 0
+    minhtmltk .ht -html $testHtml
+    probe-scripts .ht
+} -result {1 1 0}
+destroy .ht
+
+test allow-script-with-navigator "explicit -navigator => scripts denied" -body {
+    set ::SCRIPT_RAN 0
+    minhtmltk .ht -navigator webnav -html $testHtml
+    probe-scripts .ht
+} -result {0 0 1}
+
+test allow-script-option-value "" -body {
+    .ht cget -allow-script
+} -result no
+destroy .ht
+
+test allow-script-explicit-yes "-navigator plus -allow-script yes" -body {
+    set ::SCRIPT_RAN 0
+    minhtmltk .ht -navigator webnav -allow-script yes -html $testHtml
+    probe-scripts .ht
+} -result {1 1 0}
+destroy .ht
+
+test allow-script-explicit-no "-allow-script no wins over default" -body {
+    set ::SCRIPT_RAN 0
+    minhtmltk .ht -allow-script no -html $testHtml
+    probe-scripts .ht
+} -result {0 0 1}
+destroy .ht
+
+tcltest::cleanupTests

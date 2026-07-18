@@ -191,6 +191,10 @@ snit::macro ::minhtmltk::taghelper::form {} {
 
     method {node event configure} {node event args} {
         if {[set script [$node attr -default "" on$event]] eq ""} return
+        if {! $options(-allow-script)} {
+            $self logger log "Ignored (allow-script is off): on$event of $node"
+            return
+        }
         set formalArgs [list self win node]
         set actualArgs [list [$self script-self] $win $node]
         foreach {n v} $args {

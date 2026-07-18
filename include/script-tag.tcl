@@ -4,6 +4,11 @@
 
 snit::method ::minhtmltk {add script script} {atts body} {
 
+    if {! $options(-allow-script)} {
+        $self logger log "Ignored (allow-script is off): <script $atts>$body"
+        return
+    }
+
     if {$options(-script-type) eq ""
         ||
         [dict exists $atts type]

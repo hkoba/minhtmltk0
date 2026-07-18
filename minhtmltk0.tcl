@@ -36,6 +36,11 @@ snit::widget minhtmltk {
     option -script-self ""
     option -script-type [list text/x-tcl text/tcl tcl]
 
+    # Whether document-supplied Tcl (<script type="tcl">, on<event>
+    # attributes) may run. "" means: decided in the constructor from
+    # whether -navigator was given explicitly.
+    option -allow-script ""
+
     typevariable ourTtkDefaultBackground white
     typevariable ourTtkDefaultActiveBackground white
     typevariable ourTtkClassMap [dict create {*}{
@@ -132,6 +137,15 @@ snit::widget minhtmltk {
             #     }}]
         }
         $myURINavigator setwidget $win
+
+        # A widget with the default navigator only sees local files,
+        # so document scripts stay allowed as before. An explicitly
+        # passed navigator (e.g. webnav) may reach untrusted remote
+        # documents, so they default to no.
+        if {[set allowScript [from args -allow-script ""]] eq ""} {
+            set allowScript [expr {$nav eq "" ? "yes" : "no"}]
+        }
+        set options(-allow-script) $allowScript
 
         set sw [widget::scrolledwindow $win.sw \
                    -scrollbar [from args -scrollbar both]]
@@ -398,9 +412,9 @@ snit::widget minhtmltk {
 if {![info level] && [info exists ::argv0]
     && [info script] eq $::argv0} {
 
-    pack [minhtmltk .win {*}[minhtmltk::parsePosixOpts ::argv]] \
-        -fill both -expand yes
-
+    # Load the extras (e.g. the <script type="tcl"> handler) before
+    # the widget is created, so that they also apply to the initial
+    # --file/--uri document.
     foreach inc [glob [file dirname [info script]]/include/*.tcl] {
         source $inc
     }
@@ -408,6 +422,9 @@ if {![info level] && [info exists ::argv0]
     snit::method minhtmltk Open {file args} {
         $self nav loadURI $file {*}$args
     }
+
+    pack [minhtmltk .win {*}[minhtmltk::parsePosixOpts ::argv]] \
+        -fill both -expand yes
 
     if {$::argv ne ""} {
         puts [.win {*}$::argv]
