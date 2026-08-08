@@ -56,6 +56,7 @@ wish minhtmltk0.tcl --navigator=webnav Open http://localhost:8000/index.html
 | space / Next (PageDown) | scroll down one page |
 | Prior (PageUp) | scroll up one page |
 | Alt-Left / Alt-Right | history back / forward |
+| mouse wheel / Shift+wheel | scroll vertically / horizontally |
 | `<<Copy>>` (usually Ctrl-C) | copy the selected text |
 
 Text can be selected with the mouse (except on clickable elements).

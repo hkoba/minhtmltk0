@@ -56,6 +56,7 @@ wish minhtmltk0.tcl --navigator=webnav Open http://localhost:8000/index.html
 | space / Next (PageDown) | 1 ページ下へスクロール |
 | Prior (PageUp) | 1 ページ上へスクロール |
 | Alt-Left / Alt-Right | 履歴を戻る / 進む |
+| マウスホイール / Shift+ホイール | 縦 / 横スクロール |
 | `<<Copy>>`(通常は Ctrl-C) | 選択テキストをコピー |
 
 テキストはマウスで選択できます(クリック可能な要素の上を除く)。

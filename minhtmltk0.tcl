@@ -188,6 +188,8 @@ snit::widget minhtmltk {
         $self install-mouse-handlers
 
         $self install-keyboard-handlers
+
+        $self install-wheel-handlers
     }
     
     method html args {
@@ -368,6 +370,49 @@ snit::widget minhtmltk {
 
         bind $win <Alt-Right> [list $myURINavigator history go-offset +1]
         bind $win <Alt-Left> [list $myURINavigator history go-offset -1]
+    }
+
+    method install-wheel-handlers {} {
+        # Tk 8.7+/9 (TIP 474): every platform delivers <MouseWheel> to
+        # the window under the pointer; one wheel notch is +/-120 in %D
+        # (touchpads may send smaller deltas).
+        bind $win <MouseWheel>       [list $self wheel scroll yview %D]
+        bind $win <Shift-MouseWheel> [list $self wheel scroll xview %D]
+
+        # Tk 8.6 on X11 sends <Button-4>/<Button-5> instead. Some
+        # Tkhtml builds already scroll on them via their Html class
+        # bindings; add ours only when they don't, to avoid scrolling
+        # twice per notch.
+        if {[bind Html <Button-4>] eq ""} {
+            bind $win <Button-4> [list $self wheel scroll yview  120]
+            bind $win <Button-5> [list $self wheel scroll yview -120]
+        }
+    }
+
+    variable stateWheelPending ""
+
+    method {wheel scroll} {view delta} {
+        set units [expr {-$delta / 40}]
+        if {$units == 0 && $delta != 0} {
+            set units [expr {$delta < 0 ? 1 : -1}]
+        }
+        # Tkhtml applies [$view scroll] at idle time, starting from the
+        # already-applied offset; back-to-back calls before that idle
+        # overwrite each other, so fast wheel spins would lose notches.
+        # Accumulate here and issue a single call per idle round.
+        # (catch: the widget may be destroyed before the idle fires)
+        if {$stateWheelPending eq ""} {
+            after idle [list catch [list $self wheel flush]]
+        }
+        dict incr stateWheelPending $view $units
+    }
+
+    method {wheel flush} {} {
+        set pending $stateWheelPending
+        set stateWheelPending ""
+        foreach {view units} $pending {
+            $myHtml $view scroll $units units
+        }
     }
 
     #========================================

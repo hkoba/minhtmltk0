@@ -1,0 +1,100 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+set P minhtmltk
+set type ::$P
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+
+test $P-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+#----------------------------------------
+# Tall and wide content, so both axes have room to scroll.
+
+set testHtml "<html><body><pre>[string repeat x 2000]</pre>\
+[string repeat {<p>line</p>} 300]</body></html>"
+
+test wheel-create "" -body {
+    minhtmltk .ht -html $testHtml
+} -result .ht
+
+pack .ht
+update
+
+test wheel-initial-view "" -body {
+    list [lindex [.ht yview] 0] [lindex [.ht xview] 0]
+} -result {0.0 0.0}
+
+test wheel-scroll-down "one notch down moves yview" -body {
+    event generate [.ht html] <MouseWheel> -delta -120
+    update idletasks
+    expr {[lindex [.ht yview] 0] > 0}
+} -result 1
+
+test wheel-scroll-back-up "one notch up moves back to the top" -body {
+    event generate [.ht html] <MouseWheel> -delta 120
+    update idletasks
+    lindex [.ht yview] 0
+} -result 0.0
+
+test wheel-shift-scroll-right "shift+wheel scrolls horizontally" -body {
+    event generate [.ht html] <Shift-MouseWheel> -delta -120
+    update idletasks
+    expr {[lindex [.ht xview] 0] > 0}
+} -result 1
+
+test wheel-small-delta "touchpad-size delta must not round to zero" -body {
+    set before [lindex [.ht yview] 0]
+    event generate [.ht html] <MouseWheel> -delta -1
+    update idletasks
+    expr {[lindex [.ht yview] 0] > $before}
+} -result 1
+
+test wheel-rapid-notches "rapid notches accumulate, not overwrite" -body {
+    .ht yview moveto 0
+    update idletasks
+    event generate [.ht html] <MouseWheel> -delta -120
+    update idletasks
+    set one [lindex [.ht yview] 0]
+
+    .ht yview moveto 0
+    update idletasks
+    event generate [.ht html] <MouseWheel> -delta -120
+    event generate [.ht html] <MouseWheel> -delta -120
+    event generate [.ht html] <MouseWheel> -delta -120
+    update idletasks
+    set three [lindex [.ht yview] 0]
+
+    expr {$three > 2 * $one}
+} -result 1
+
+test wheel-no-double-button45 "Button-4/5 is handled by exactly one layer" -body {
+    expr {[bind Html <Button-4>] eq "" || [bind .ht <Button-4>] eq ""}
+} -result 1
+
+test wheel-button5-still-scrolls "legacy X11 wheel model still works" -body {
+    set before [lindex [.ht yview] 0]
+    event generate [.ht html] <Button-5>
+    update idletasks
+    event generate [.ht html] <ButtonRelease-5>
+    update idletasks
+    expr {[lindex [.ht yview] 0] > $before}
+} -result 1
+
+destroy .ht
+
+tcltest::cleanupTests
