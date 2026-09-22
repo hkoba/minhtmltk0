@@ -17,7 +17,8 @@ jobs:
       - name: Build and install Tkhtml 3 (hkoba/tkhtml3 @ $TKHTML3_COMMIT)
         run: SUDO=sudo sh .github/scripts/build-tkhtml3.sh "$TKHTML3_COMMIT"
       - name: Show which Tkhtml is loaded
-        run: echo 'puts "Tkhtml [package require Tkhtml]: [package ifneeded Tkhtml 3.0]"; exit' | xvfb-run -a tclsh
+        run: |
+          echo 'puts "Tkhtml [package require Tkhtml] from [package ifneeded Tkhtml 3.0]"; exit' | xvfb-run -a tclsh
       - name: Run tests
         run: xvfb-run tests/all.tcl
       - name: Run Python binding tests
