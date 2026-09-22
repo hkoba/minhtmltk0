@@ -257,6 +257,14 @@ view = HtmlView(root, html='<form><input name=q><input type=submit></form>')
 view.on('submit', lambda ev: print(ev.form.get_all()))
 ```
 
+## For contributors (and coding agents)
+
+- [CLAUDE.md](CLAUDE.md) — orientation: layout, how to run things, conventions.
+- [doc/architecture.md](doc/architecture.md) — how the widget is assembled,
+  document lifecycle, forms, event dispatch, navigators.
+- [doc/tkhtml3-usage.md](doc/tkhtml3-usage.md) — the Tkhtml 3 commands this
+  project relies on and their traps; links to the engine's own docs.
+
 ## Running the tests
 
 ```sh

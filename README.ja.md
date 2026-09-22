@@ -254,6 +254,14 @@ view = HtmlView(root, html='<form><input name=q><input type=submit></form>')
 view.on('submit', lambda ev: print(ev.form.get_all()))
 ```
 
+## 開発者(とコーディングエージェント)向け
+
+- [CLAUDE.md](CLAUDE.md) — 全体像: ファイル構成、実行方法、作法。
+- [doc/architecture.md](doc/architecture.md) — ウィジェットの組み立て方、
+  文書のライフサイクル、フォーム、イベント配送、navigator。
+- [doc/tkhtml3-usage.md](doc/tkhtml3-usage.md) — 本プロジェクトが依存する
+  Tkhtml 3 のコマンドと落とし穴、エンジン側ドキュメントへのリンク。
+
 ## テストの実行
 
 ```sh
