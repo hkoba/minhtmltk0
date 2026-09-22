@@ -1,13 +1,23 @@
 name: xvfb-run-tcltk-test
 on: [push]
+env:
+  # Tkhtml 3 is built from github.com/hkoba/tkhtml3 at this commit
+  # (Ubuntu's tk-html3 package is too old: no CSS3 attribute selectors).
+  TKHTML3_COMMIT: bf51fe3e4467a121afaeb3f26be0090d071b6188
 jobs:
   tcltk:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - run: sudo apt update && sudo apt install xvfb wish tcllib tklib tclx tk-html3 python3-tk
-        name: Install required packages
+      - name: Install required packages
+        run: |
+          sudo apt update
+          sudo apt install xvfb tcl tk tcl-dev tk-dev tcllib tklib tclx python3-tk gcc make curl
+      - name: Build and install Tkhtml 3 (hkoba/tkhtml3 @ $TKHTML3_COMMIT)
+        run: SUDO=sudo sh .github/scripts/build-tkhtml3.sh "$TKHTML3_COMMIT"
+      - name: Show which Tkhtml is loaded
+        run: echo 'puts "Tkhtml [package require Tkhtml]: [package ifneeded Tkhtml 3.0]"; exit' | xvfb-run -a tclsh
       - name: Run tests
         run: xvfb-run tests/all.tcl
       - name: Run Python binding tests
