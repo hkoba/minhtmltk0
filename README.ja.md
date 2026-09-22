@@ -241,6 +241,19 @@ proc app-read {scheme uriObj args} {
 pack [minhtmltk .browser -scheme-command app-read -uri app:/start]
 ```
 
+## Python (tkinter) から使う
+
+`python/` に tkinter 用のバインディングがあります。`HtmlView` がウィジェットを
+包み、フォーム入力・ボタン・リンクを Python の関数で処理したり
+(`view.on('submit', func)`)、`app:` スキームでページ自体を Python から
+返したりできます。[python/README.md](python/README.md) を参照してください。
+
+```python
+from minhtmltk import HtmlView
+view = HtmlView(root, html='<form><input name=q><input type=submit></form>')
+view.on('submit', lambda ev: print(ev.form.get_all()))
+```
+
 ## テストの実行
 
 ```sh
@@ -248,6 +261,9 @@ cd tests
 tclsh all.tcl                 # X ディスプレイが必要
 # ヘッドレスなら:
 xvfb-run -a tclsh all.tcl
+
+# Python バインディング
+cd ../python/tests && xvfb-run -a python3 -m unittest
 ```
 
 ## ライセンス

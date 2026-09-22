@@ -130,6 +130,7 @@ minhtmltk0 は Tkhtml3 のフォーム/リンク/イベント処理を Tcl (snit
    クリックすると `on click` が h2/div/body/html の 4 回呼ばれる
    (レビューで実測)。README の `.browser on click { puts "clicked $node" }`
    は 1 回を想定しているように読める。
+12. **(修正済み 2026-09-22)** `<option selected>` を持つ `<select>` の値が `-1` になり `get_all` から欠ける(`form.tcl` `redraw-input select-single` が option の index を value リストから `lsearch` していた)。
 11. 補足事実: `<button>` タグは未対応(`minhtmltk0.tcl:327` の "To be
    handled")。`<input type=button>` は既定 (`-use-tk-button no`) では Tk
    widget を持たず Tkhtml が描画し、widget 自身の Press/Release で click に
@@ -148,11 +149,11 @@ Tcl 側に入れない。)
 | # | 内容 | 変更箇所 | 既存テストへの影響 |
 |---|---|---|---|
 | A0 | **済**: バグ 7 修正(ついでに `node event add` の `$self $node event on` という typo も修正): `node event on` の `dict with` をやめ、`dict exists` で現在のリストを取り `dict set … $node $event [linsert $cur end $command]`。`node event remove` (`:267-280`) も event キー不在で落ちるので同様にガード | `mouseevent0.tcl:267-292` | なし。「`on ready` + `on submit` → dump-handlers に両方残る」テストを追加 |
-| A2 | **`event` を handler に渡す**: `node event apply` (`:339`) の formals を `{self win selfns node this event args}` に。`node event configure` (`form.tcl:204`) は外側 formals を無視する二重 apply なので無影響 | `mouseevent0.tcl:339-343` | `mouseevent0.test:151-161` 「Visible parameters」の期待値に `event` を追加 |
+| A2 | **済**: `event` を handler に渡す: `node event apply` (`:339`) の formals を `{self win selfns node this event args}` に。`node event configure` (`form.tcl:204`) は外側 formals を無視する二重 apply なので無影響 | `mouseevent0.tcl:339-343` | `mouseevent0.test:151-161` 「Visible parameters」の期待値に `event` を追加 |
 | A3 | **済**: 伝播停止(バグ 8 修正): `node event apply` を `catch {apply …} result opts` で包み、rc==3 (break) なら `return -code break`(メソッド境界で改めて break を投げるので `handlelist` の `foreach` が止まり、戻り値 0 = 「全部は処理していない」が既定通りになる)、rc==4 (continue) は無視、それ以外は `return -options $opts $result`。`:319` のコメントを実態に合わせる | `mouseevent0.tcl:316-343` | なし。「2 つの h2 click、1 つ目が break → 2 つ目は走らない」テストを追加 |
 | A3b | **済**: バグ 9 修正: `list-handlers` で startNode 自身にハンドラがあれば `nodeSpecList` をその 1 要素に潰し、ループ内は `$key` 側だけ見る(「ノード別がタグ別を隠す」意味は維持、重複だけ消える) | `mouseevent0.tcl:364-405` | なし。`<h2 class="a b">` で trigger → 1 回、のテスト追加 |
-| A1 | **永続ハンドラ**: `state*` でない `myPersistentTriggerDict` を追加(snit がコンストラクタ前に初期化するので最初の Reset でも存在する)。`on` / `node event on` / `node event remove` / `node event clear` が先頭の `-persistent` を受け付け、永続側と `stateTriggerDict` の両方に入れる。キーは `""`・タグ・タグ.class に限定し `^::tkhtml::node` は拒否。`install-mouse-handlers` (`:451`) で **組込みタグハンドラ (`:462`) より先に** `stateTriggerDict` へコピーする — これで永続 `a click` が既定ナビゲーションより先に走り、A3 の break で prevent-default できる。`node event dump-persistent` をテスト用に追加 | `mouseevent0.tcl:236,245,282,451` | なし。「`on -persistent` → `load` 後も残る」「永続 `a click` が組込みより前」のテスト追加。`mouseevent0.test` は `.ht Reset` でハンドラが消える前提なので、永続テストの後始末で `clear -persistent` する |
-| A4 | **未知スキームの委譲**: `common_macro.tcl` に `option -scheme-command ""`(`:8` 付近)。`read` (`:67`) で `scheme $scheme read` が無ければ `{*}$options(-scheme-command) $scheme $uriObj {*}$args` に委譲、それも無ければ従来の error。`minhtmltk0.tcl:62-64` に `delegate option -scheme-command to myURINavigator` を足して `$w configure -scheme-command …` でも使えるように。`loadURI`・画像 (`imagecmd.tcl:56`, `-mode binary`)・stylesheet (`style.tcl:69`) が自動で恩恵を受ける。`$uriObj` は呼び出し中だけ生きる(`:92-94` の scope guard)ので、受け側は `get/path/query` を即座に取り出して保持しない。相対リンク解決 (`tkhtml::uri`) のため `app:/path` の階層形式を推奨 | `common_macro.tcl:8,67-77`, `minhtmltk0.tcl:62` | なし。`tests/scheme-command.test` を新設(`apply` で dict を返す `-scheme-command` を設定 → `nav loadURI app:/x` → h2 テキストと location、`nav read app:/y -mode binary`) |
+| A1 | **済**: 永続ハンドラ: `state*` でない `myPersistentTriggerDict` を追加(snit がコンストラクタ前に初期化するので最初の Reset でも存在する)。`on` / `node event on` / `node event remove` / `node event clear` が先頭の `-persistent` を受け付け、永続側と `stateTriggerDict` の両方に入れる。キーは `""`・タグ・タグ.class に限定し `^::tkhtml::node` は拒否。`install-mouse-handlers` (`:451`) で **組込みタグハンドラ (`:462`) より先に** `stateTriggerDict` へコピーする — これで永続 `a click` が既定ナビゲーションより先に走り、A3 の break で prevent-default できる。`node event dump-persistent` をテスト用に追加 | `mouseevent0.tcl:236,245,282,451` | なし。「`on -persistent` → `load` 後も残る」「永続 `a click` が組込みより前」のテスト追加。`mouseevent0.test` は `.ht Reset` でハンドラが消える前提なので、永続テストの後始末で `clear -persistent` する |
+| A4 | **済**: 未知スキームの委譲: `common_macro.tcl` に `option -scheme-command ""`(`:8` 付近)。`read` (`:67`) で `scheme $scheme read` が無ければ `{*}$options(-scheme-command) $scheme $uriObj {*}$args` に委譲、それも無ければ従来の error。`minhtmltk0.tcl:62-64` に `delegate option -scheme-command to myURINavigator` を足して `$w configure -scheme-command …` でも使えるように。`loadURI`・画像 (`imagecmd.tcl:56`, `-mode binary`)・stylesheet (`style.tcl:69`) が自動で恩恵を受ける。`$uriObj` は呼び出し中だけ生きる(`:92-94` の scope guard)ので、受け側は `get/path/query` を即座に取り出して保持しない。相対リンク解決 (`tkhtml::uri`) のため `app:/path` の階層形式を推奨 | `common_macro.tcl:8,67-77`, `minhtmltk0.tcl:62` | なし。`tests/scheme-command.test` を新設(`apply` で dict を返す `-scheme-command` を設定 → `nav loadURI app:/x` → h2 テキストと location、`nav read app:/y -mode binary`) |
 | A5 | **済(ブラウザ流を採用)**: グローバルは他のハンドラの有無に関係なく最内ノードで 1 回だけ発火する(fallback 意味論は廃止)。旧案: `generatelist` でグローバル fallback を各イベントの最内ノードに対してだけ評価する(`list-handlers` に `withGlobal` 引数を足し、先頭以外は 0)。Tcl 利用者にとって挙動変更だが、既存テストは祖先分の多重発火に依存していない。変えたくない場合は Python 側で「グローバル」を `html` タグ別として登録する(1 回だけ発火するが `node` が `html` になる)逃げ道がある。**推奨: 直す** | `mouseevent0.tcl:345-358,364` | なし。`<div><h2>` クリックで `on click` 1 回、のテスト追加 |
 | A6 | (任意) `<form onsubmit>`: `form add-for-node` で `node event configure $node submit form $form`。ただし submit は input ノードで発火するので form ノードのハンドラには届かない。`add input submit` (`form.tcl:523`) で form ノードにも trigger するか、発火対象を form にするかは要判断(後者は既存テストの `$node tag` 期待値 `input` を変える) | `form.tcl:143,523` | 要判断。**Python 連携の必須要件ではない**ので後回し |
 
@@ -160,7 +161,9 @@ Tcl 側に入れない。)
 制約: CI は Ubuntu の `tk-html3`(Tcl 8.6)で走るので、Tcl 側の変更は
 8.6 互換の構文に留める。
 
-### B. Python パッケージ(`python/` 配下、新規)
+### B. Python パッケージ(`python/` 配下)— 実装済み 2026-09-22
+
+実装は unittest(pytest 不要)で、`python/tests` 配下。以下は設計時の案で、実装との差分: `Node.property()` は組込み `property` と衝突するため `Node.style()` に改名。`HtmlView.click(node)` をテスト補助として追加。scheme handler の例外は Python 側で捕まえて `{error MESSAGE}` を返し、Tcl 側の小さな `apply` ラッパーが `error` に変換する(createcommand から Python 例外を逃がすと次の `mainloop()` でそれが再送出されることを確認したため)。
 
 ```
 python/
