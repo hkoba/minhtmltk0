@@ -78,7 +78,10 @@ Documents:
 - `'h2'` / `'input.big'`: a tag or `tag.class`; bubbles, so every
   matching ancestor of the target is called once.
 - any other CSS selector (`'#save'`, `'a[href^="app:"]'`): the matching
-  nodes of each document. Such node-level handlers replace the built-in
+  nodes of each document. (Which selectors work depends on the Tkhtml
+  build: CSS3 attribute selectors such as `^=`/`$=` need a recent
+  [hkoba/tkhtml3](https://github.com/hkoba/tkhtml3), which is what CI
+  builds; Ubuntu's `tk-html3` package only has CSS2 ones.) Such node-level handlers replace the built-in
   behaviour for those nodes (link navigation, label click); call
   `ev.perform_default()` to run it.
 
