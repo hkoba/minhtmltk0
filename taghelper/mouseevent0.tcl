@@ -253,7 +253,7 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     # Node event.
     #
     method {node event add} {node event command} {
-	$self $node event on $node $event $command
+	$self node event on $node $event $command
     }
     method raise-if-strict-event msg {
 	if {$options(-strict-event)} {
@@ -271,24 +271,28 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         if {![dict exists $stateTriggerDict $node]} {
 	    $self raise-if-strict-event "No events are known for $node"
 	}
-	dict with stateTriggerDict $node {
-	    set curList [set $ourEvDict($event)]
-	    if {[set pos [lsearch $curList $command]] >= 0} {
-		set $ourEvDict($event) [lreplace $curList $pos $pos]
-	    }
-	}
+        if {![dict exists $stateTriggerDict $node $event]} {
+	    $self raise-if-strict-event "No $event handlers are known for $node"
+        }
+        set curList [dict get $stateTriggerDict $node $event]
+        if {[set pos [lsearch -exact $curList $command]] >= 0} {
+            dict set stateTriggerDict $node $event \
+                [lreplace $curList $pos $pos]
+        }
     }
 
     method {node event on} {node event command} {
-        if {![dict exists $stateTriggerDict $node]} {
-            dict set stateTriggerDict $node \
-                [dict create $ourEvDict($event) [list $command]]
-        } else {
-            dict with stateTriggerDict $node {
-                lappend $ourEvDict($event) $command
-            }
+        if {![info exists ourEvDict($event)]} {
+            error "Unknown event name $event"
         }
-        # puts stateTriggerDict=$stateTriggerDict
+        # Note: [dict with] can't be used here: it only writes back
+        # variables that were keys at entry, so a handler for a new
+        # event name on an existing node would be silently dropped.
+        set curList [if {[dict exists $stateTriggerDict $node $event]} {
+            dict get $stateTriggerDict $node $event
+        }]
+        lappend curList $command
+        dict set stateTriggerDict $node $event $curList
     }
 
     method {node event clear} {node event} {
@@ -316,7 +320,8 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     method {node event handlelist} handlers {
         set count 0
         if {$options(-event-in-apply)} {
-            # Safer, but need to use [return -code break] instead of [break]
+            # Safer. A handler stops the remaining handlers with
+            # [return -code break] (see [node event apply]).
             foreach spec $handlers {
                 set args [lassign $spec event node cmd]
                 $self node event apply $event $node $cmd {*}$args
@@ -336,17 +341,43 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         expr {[llength $handlers] == $count}
     }
 
+    #
+    # Runs one handler. [return -code break] inside the handler is
+    # re-raised as a break of the caller's loop ([handlelist]), so the
+    # remaining handlers for this event are skipped (like
+    # stopImmediatePropagation). [return -code continue] just ends the
+    # handler. Anything else (values, errors) is passed through.
+    #
     method {node event apply} {event node cmd args} {
         # XXX: What kind of API should we have?
-        apply [list {self win selfns node this args} $cmd] \
-            $self $win $selfns $node $node {*}$args
+        set rc [catch {
+            apply [list {self win selfns node this args} $cmd] \
+                $self $win $selfns $node $node {*}$args
+        } result opts]
+        switch $rc {
+            3 { return -code break }
+            4 { return }
+            default { return -options $opts $result }
+        }
     }
 
+    #
+    # $evlist is a flat {event node ...} list, innermost node first for
+    # each event (see Press/Release). Tag/class handlers bubble: each
+    # ancestor gets its own call. Global handlers are looked up only for
+    # the first (innermost) node of each event, so [$self on click ...]
+    # runs once per click with $node = the innermost target, as a
+    # document-level listener does in a browser.
+    #
     method {node event generatelist} evlist {
         set handlers {}
         array set seen {}
+        array set firstSeen {}
         foreach {event node} $evlist {
-            foreach spec [$self node event list-handlers $node $event] {
+            set withGlobal [expr {![info exists firstSeen($event)]}]
+            set firstSeen($event) 1
+            foreach spec [$self node event list-handlers \
+                              $node $event "" $withGlobal] {
                 if {[incr seen($spec)] >= 2} continue
                 lappend handlers $spec
             }
@@ -358,45 +389,46 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     }
 
     #
-    # This was introduced to define event triggering order, but now it isn't.
+    # Handler lookup for one (node, event):
+    #
+    #   1. node-level handlers of $startNode itself, if any; otherwise
+    #   2. tag.class and tag handlers matching $startNode
+    #      (when -generate-tag-class-event is yes);
+    #   3. global handlers ([$self on ...]), once, with $node bound to
+    #      $startNode (or the root node when $startNode is "").
+    #
+    # Node-level handlers shadow tag/class ones. Global handlers are
+    # independent of 1 and 2 and are always included unless $withGlobal
+    # is 0 (generatelist passes 0 for all but the innermost node).
     #
     option -generate-tag-class-event yes
-    method {node event list-handlers} {startNode event {arglist ""}} {
+    method {node event list-handlers} {startNode event {arglist ""} {withGlobal 1}} {
 
         if {$startNode ne ""} {
             set startNode [parent-of-textnode $startNode]
         }
-        set nodeSpecList [if {$startNode ne ""
-                         && $options(-generate-tag-class-event)} {
+        set nodeSpecList [if {$startNode eq ""} {
+            list
+        } elseif {[dict exists $stateTriggerDict $startNode $event]
+                  && [dict get $stateTriggerDict $startNode $event] ne ""} {
+            list [list $startNode $startNode]
+        } elseif {$options(-generate-tag-class-event)} {
             tag-class-list-of-node $startNode
         } else {
-            list $startNode
+            list
         }]
 
         set result []
         foreach nspec $nodeSpecList {
-            # In simple case, nspec = key = node
-            # In tag-class-list, nspec = [list tag_class node]
+            # nspec = [list key node], where key is the node itself
+            # or a tag/tag.class name.
             set key  [lindex $nspec 0]
             set node [lindex $nspec end]
 
-            # puts [list look-for $event $key $node]
-            if {!(
-                  [dict-getvar $stateTriggerDict $node $event cmdlist]
-                  || [dict-getvar $stateTriggerDict $key $event cmdlist]
-                  )
-            } continue
+            if {![dict-getvar $stateTriggerDict $key $event cmdlist]} continue
 
             if {$options(-debug-mouse-event) >= 3} {
                 puts "list-handlers($node $key $event) => cmdlist($cmdlist)"
-            }
-
-            if {$node eq ""} {
-                set node [if {$startNode ne ""} {
-                    set startNode
-                } else {
-                    $myHtml node
-                }]
             }
 
             foreach cmd $cmdlist {
@@ -405,16 +437,16 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         }
 
         # global event
-        if {$result eq ""
+        if {$withGlobal
             && [dict-getvar $stateTriggerDict "" $event cmdlist]} {
+            set node [if {$startNode ne ""} {
+                set startNode
+            } else {
+                $myHtml node
+            }]
             foreach cmd $cmdlist {
                 lappend result [list $event $node $cmd {*}$arglist]
             }
-        }
-        if {$result eq ""} {
-            # puts [list no handler for $event $startNode]
-        } else {
-            # puts [list event $event on $startNode generates: $result]
         }
 
         set result

@@ -160,6 +160,165 @@ test $P-$D-parameters-[incr I] "Visible parameters in event handler" -body {
 
 } -result [lsort {self win selfns node this args}]
 
+#========================================
+# Global handlers run once per event, with $node = innermost target.
+
+incr D
+.ht Reset
+test $P-$D-global-click-once-[incr I] "(global) on click runs once per click" -body {
+
+    .ht parse -final {
+	<div id="outer"><h2>Hello!</h2></div>
+    }
+
+    set ::out ""
+    .ht on click { lappend ::out [$node tag] }
+
+    invokeClick [.ht search h2]
+
+    set ::out
+
+} -result h2
+
+test $P-$D-global-and-tag-[incr I] "(global) on click also runs when a tag handler matched" -body {
+
+    set ::out ""
+    .ht node event on h2 click { lappend ::out tag-h2 }
+
+    invokeClick [.ht search h2]
+
+    set ::out
+
+} -result {tag-h2 h2}
+
+test $P-$D-tag-bubbles-[incr I] "tag handlers bubble to ancestors, global still once" -body {
+
+    set ::out ""
+    .ht node event on div click { lappend ::out tag-div }
+
+    invokeClick [.ht search h2]
+
+    set ::out
+
+} -result {tag-h2 h2 tag-div}
+
+test $P-$D-global-trigger-[incr I] "(global) via node event trigger" -body {
+
+    set ::out ""
+    .ht node event trigger [.ht search h2] click
+
+    set ::out
+
+} -result {tag-h2 h2}
+
+#========================================
+# Several events on the same key, and handler removal.
+
+incr D
+.ht Reset
+test $P-$D-multi-event-same-key-[incr I] "on ready + on submit + on click keep all three" -body {
+
+    .ht on ready  { set ::READY 1 }
+    .ht on submit { lappend ::out submit }
+    .ht on click  { lappend ::out click }
+    .ht node event on h2 click     { lappend ::out h2-click }
+    .ht node event on h2 mouseover { lappend ::out h2-over }
+
+    set dump [.ht node event dump-handlers]
+    list [lsort [dict keys [dict get $dump ""]]] \
+        [lsort [dict keys [dict get $dump h2]]]
+
+} -result {{click ready submit} {click mouseover}}
+
+test $P-$D-remove-[incr I] "node event remove" -body {
+
+    .ht parse -final {
+	<h2>Hello!</h2>
+    }
+
+    set ::out ""
+    .ht node event remove h2 click { lappend ::out h2-click }
+    .ht node event remove h2 dblclick { never registered }; # no error unless -strict-event
+
+    invokeClick [.ht search h2]
+
+    set ::out
+
+} -result click
+
+#========================================
+# [return -code break] stops the remaining handlers.
+
+incr D
+.ht Reset
+test $P-$D-break-[incr I] "return -code break in a handler" -body {
+
+    .ht parse -final {
+	<h2>Hello!</h2>
+    }
+
+    set ::out ""
+    .ht node event on h2 click { lappend ::out first; return -code break }
+    .ht node event on h2 click { lappend ::out second }
+    .ht on click { lappend ::out global }
+
+    list [.ht node event trigger [.ht search h2] click] $::out
+
+} -result {0 first}
+
+test $P-$D-break-mouse-[incr I] "return -code break via real click" -body {
+
+    set ::out ""
+    invokeClick [.ht search h2]
+    set ::out
+
+} -result first
+
+test $P-$D-no-break-[incr I] "without break, all handlers run and trigger returns 1" -body {
+
+    .ht node event clear h2 click
+    .ht node event on h2 click { lappend ::out first; return -code continue }
+    .ht node event on h2 click { lappend ::out second }
+
+    set ::out ""
+    list [.ht node event trigger [.ht search h2] click] $::out
+
+} -result {1 {first second global}}
+
+test $P-$D-error-passes-[incr I] "errors in handlers still propagate" -body {
+
+    .ht node event clear h2 click
+    .ht node event on h2 click { error "boom" }
+
+    catch {.ht node event trigger [.ht search h2] click} msg
+    set msg
+
+} -result boom
+
+#========================================
+# Node-level handlers are not duplicated per class.
+
+incr D
+.ht Reset
+test $P-$D-node-multi-class-[incr I] "node handler on a multi-class node runs once" -body {
+
+    .ht parse -final {
+	<h2 class="a b">Hello!</h2>
+    }
+
+    set ::out ""
+    set h2 [.ht search h2]
+    .ht node event on $h2 click { lappend ::out node }
+    .ht node event on h2.a click { lappend ::out class-a-shadowed }
+    .ht on click { lappend ::out global }
+
+    .ht node event trigger $h2 click
+    invokeClick $h2
+
+    set ::out
+
+} -result {node global node global}
+
 incr D
 .ht Reset
 test $P-$D-hover-[incr I] "h2:hover" -body {

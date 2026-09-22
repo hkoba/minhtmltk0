@@ -144,6 +144,15 @@ Supported event names include `ready`, `click`, `mousedown`,
 `mouseup`, `mouseover`, `mouseout`, `mousemove`, `change` and
 `submit`.
 
+Dispatch follows the browser model: a global handler runs once per
+event with `node` bound to the innermost target, regardless of other
+handlers. Handlers keyed by tag name or `tag.class` (`node event on h2
+click ...`) bubble, so each matching ancestor is called once. A handler
+registered on a specific node shadows the tag/class handlers for that
+node (this is also how the built-in `<a>` navigation can be overridden
+for one link). A handler can stop the remaining handlers of the same
+event with `return -code break`.
+
 ### Document scripts and `-allow-script`
 
 A document can carry Tcl code: `<script type="tcl">...</script>` is
