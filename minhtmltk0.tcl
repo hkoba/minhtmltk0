@@ -62,6 +62,7 @@ snit::widget minhtmltk {
     delegate option -uri to myURINavigator as -uri
     delegate option -file to myURINavigator as -uri
     delegate option -home to myURINavigator
+    delegate option -scheme-command to myURINavigator
     delegate method location to myURINavigator
 
     option -html ""

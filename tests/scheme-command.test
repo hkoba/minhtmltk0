@@ -1,0 +1,104 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+set P minhtmltk
+set type ::$P
+set T scheme-command
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+
+test $T-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+#----------------------------------------
+# A scheme handler implemented as a command prefix. It records every
+# call and serves HTML, or bytes for -mode binary.
+
+set ::calls {}
+set ::PNG [binary decode base64 {
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
+}]
+
+proc app-read {scheme uriObj args} {
+    set mode [::minhtmltk::utils::dict-default $args -mode text]
+    lappend ::calls [list $scheme [$uriObj get] $mode]
+    if {[string match *.png [$uriObj path]]} {
+        return [dict create uri [$uriObj get] content-type image/png \
+                    body $::PNG]
+    }
+    dict create uri [$uriObj get] content-type text/html \
+        body "<h2>[$uriObj path]</h2><a href=\"next\">next</a>"
+}
+
+test $T-create "" -body {
+    if {[winfo exists .ht]} { rename .ht "" }
+    $type .ht -debug yes -scheme-command app-read
+} -result .ht
+
+pack .ht
+
+test $T-cget "" -body {
+    list [.ht cget -scheme-command] [.ht nav cget -scheme-command]
+} -result {app-read app-read}
+
+test $T-unsupported-without-command "still an error when unset" -body {
+    .ht configure -scheme-command ""
+    catch {.ht nav read app:/x} msg
+    .ht configure -scheme-command app-read
+    set msg
+} -result {Unsupported URI scheme app: app:/x}
+
+test $T-read "nav read goes through the command" -body {
+    set res [.ht nav read app:/hello]
+    list [dict get $res content-type] [dict get $res body] $::calls
+} -result {text/html {<h2>/hello</h2><a href="next">next</a>} {{app app:/hello text}}}
+
+test $T-loadURI "nav loadURI renders the served page" -body {
+    set ::calls {}
+    .ht nav loadURI app:/first
+    list [.ht location get] [[[.ht search h2] children] text]
+} -result {app:/first /first}
+
+test $T-link "a relative link resolves against the app: page" -body {
+    .ht node event trigger [.ht search a] click
+    list [.ht location get] [[[.ht search h2] children] text] \
+        [.ht nav history list]
+} -result {app:/next /next {app:/first app:/next}}
+
+test $T-binary "images use -mode binary" -body {
+    set ::calls {}
+    set res [.ht nav read app:/dot.png -mode binary]
+    list [dict get $res content-type] \
+        [string equal [dict get $res body] $::PNG] $::calls
+} -result {image/png 1 {{app app:/dot.png binary}}}
+
+test $T-img "<img src=app:...> is loaded through the command" -body {
+    set ::calls {}
+    .ht load "" {<img src="app:/dot.png">}
+    update idletasks
+    list [.ht image load app:/dot.png] $::calls
+} -match regexp -result {^image\d+ \{\{app app:/dot.png binary\}\}$}
+
+test $T-file-still-native "file: keeps its own handler" -body {
+    set ::calls {}
+    # (a bare path would be resolved against the current app: location)
+    .ht nav loadURI file://$testDir/html/001.html
+    list $::calls [[[.ht search h2] children] text]
+} -result {{} Hello!}
+
+destroy .ht
+
+tcltest::cleanupTests

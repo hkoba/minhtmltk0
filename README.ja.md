@@ -227,6 +227,20 @@ dict get $res content-type   ;# => image/png
 navigator type に合成します(`navigator/webnav.tcl` 参照)。
 `navigator/samplenav.tcl` は `localnav` の注釈付きコピーです。
 
+アプリケーション自身が提供する scheme なら `-scheme-command` オプションの
+方が簡単です。navigator にハンドラが無い scheme は
+`{*}$cmd $scheme $uriObj ?-mode binary?` の形でこのコマンド接頭辞に
+渡され、同じ response dict を返せばリンク・画像・スタイルシートの
+全てがそこを通ります。
+
+```tcl
+proc app-read {scheme uriObj args} {
+    dict create uri [$uriObj get] content-type text/html \
+        body "<h1>[$uriObj path]</h1>"
+}
+pack [minhtmltk .browser -scheme-command app-read -uri app:/start]
+```
+
 ## テストの実行
 
 ```sh

@@ -230,6 +230,20 @@ To support a new scheme, write a `snit::macro` defining
 into a navigator type (see `navigator/webnav.tcl`).
 `navigator/samplenav.tcl` is an annotated copy of `localnav`.
 
+For schemes served by the application itself, the `-scheme-command`
+option is simpler: any scheme the navigator has no handler for is
+passed to this command prefix as `{*}$cmd $scheme $uriObj ?-mode
+binary?`, and it returns the same response dict. Links, images and
+stylesheets all go through it.
+
+```tcl
+proc app-read {scheme uriObj args} {
+    dict create uri [$uriObj get] content-type text/html \
+        body "<h1>[$uriObj path]</h1>"
+}
+pack [minhtmltk .browser -scheme-command app-read -uri app:/start]
+```
+
 ## Running the tests
 
 ```sh

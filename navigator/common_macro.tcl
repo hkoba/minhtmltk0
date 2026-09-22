@@ -7,6 +7,13 @@ snit::macro ::minhtmltk::navigator::common_macro {} {
     option -uri ""
     option -home ""
 
+    # Command prefix consulted by [read] for URI schemes this navigator
+    # has no [scheme <name> read] method for. It is called as
+    #   {*}$cmd $scheme $uriObj ?-mode binary? ...
+    # and must return the same response dict as a scheme handler
+    # (uri, content-type, body). $uriObj only lives during the call.
+    option -scheme-command ""
+
     component myLocation -public location
     # *         $uri resolve URI
     # *         $uri load URI
@@ -70,10 +77,13 @@ snit::macro ::minhtmltk::navigator::common_macro {} {
 
         set scheme [$uriObj scheme]
         set method [list scheme $scheme read]
-        if {[$self info methods $method] eq ""} {
-            error "Unsupported URI scheme $scheme: $uri"
+        if {[$self info methods $method] ne ""} {
+            return [$self {*}$method $uriObj {*}$args]
         }
-        $self {*}$method $uriObj {*}$args
+        if {$options(-scheme-command) ne ""} {
+            return [{*}$options(-scheme-command) $scheme $uriObj {*}$args]
+        }
+        error "Unsupported URI scheme $scheme: $uri"
     }
 
     #
