@@ -110,6 +110,28 @@ test $P-$D-select "select onchange" -body {
 } -result {foo {q1 apple}}
 
 incr D
+test $P-$D-select-selected "select honors <option selected>" -body {
+    .ht Reset
+
+    .ht parse -final {
+        <form>
+        <select name="q1">
+        <option value="apple">I like apples
+        <option value="orange" selected>I like oranges
+        </select>
+        <select name="q2">
+        <option value="x">X
+        <option value="y">Y
+        </select>
+        </form>
+    }
+
+    list [[.ht form get 0] get_all] \
+        [[[.ht search {select[name=q1]}] replace] cget -text]
+
+} -result {{q1 orange q2 x} {I like oranges}}
+
+incr D
 test $P-$D-cyclic-change "programmatical form changes should not invoke onchange" -body {
     .ht Reset
 
