@@ -235,15 +235,31 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     #
     variable stateTriggerDict [dict create]
 
+    #
+    # Handlers registered with -persistent survive [Reset] (i.e. every
+    # [load]): they are copied into stateTriggerDict again by
+    # install-mouse-handlers, ahead of the built-in tag handlers. Keys
+    # are "" (global), a tag or tag.class; node handles die with the
+    # document and are rejected.
+    #
+    variable myPersistentTriggerDict [dict create]
+
     method {node event dump-handlers} {} {
         set stateTriggerDict
+    }
+    method {node event dump-persistent} {} {
+        set myPersistentTriggerDict
     }
 
     #
     # Global event. This can be registered before parse.
     #
-    method on {event command} {
-        $self node event on "" $event $command
+    #   $self on ?-persistent? EVENT COMMAND
+    #
+    method on {args} {
+        set opts [lrange $args 0 end-2]
+        lassign [lrange $args end-1 end] event command
+        $self node event on {*}$opts "" $event $command
     }
     method trigger {event args} {
         $self node event trigger "" $event {*}$args
@@ -263,8 +279,26 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
 	}
     }
 
+    # Splits a leading -persistent off $args; returns 0 or 1.
+    proc cut-persistent-opt {argsVar} {
+        upvar 1 $argsVar args
+        if {[lindex $args 0] eq "-persistent"} {
+            set args [lrange $args 1 end]
+            return 1
+        }
+        return 0
+    }
+
+    proc dict-list-get {dict args} {
+        if {[dict exists $dict {*}$args]} {
+            dict get $dict {*}$args
+        }
+    }
+
     option -strict-event no
-    method {node event remove} {node event command} {
+    method {node event remove} {args} {
+        set persistent [cut-persistent-opt args]
+        lassign $args node event command
 	if {![info exists ourEvDict($event)]} {
 	    $self raise-if-strict-event "Unknown event name $event"
 	}
@@ -274,6 +308,13 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         if {![dict exists $stateTriggerDict $node $event]} {
 	    $self raise-if-strict-event "No $event handlers are known for $node"
         }
+        if {$persistent} {
+            set plist [dict-list-get $myPersistentTriggerDict $node $event]
+            if {[set pos [lsearch -exact $plist $command]] >= 0} {
+                dict set myPersistentTriggerDict $node $event \
+                    [lreplace $plist $pos $pos]
+            }
+        }
         set curList [dict get $stateTriggerDict $node $event]
         if {[set pos [lsearch -exact $curList $command]] >= 0} {
             dict set stateTriggerDict $node $event \
@@ -281,21 +322,48 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         }
     }
 
-    method {node event on} {node event command} {
+    #
+    #   $self node event on ?-persistent? NODE EVENT COMMAND
+    #
+    method {node event on} {args} {
+        set persistent [cut-persistent-opt args]
+        if {[llength $args] != 3} {
+            error "Usage: node event on ?-persistent? node event command"
+        }
+        lassign $args node event command
         if {![info exists ourEvDict($event)]} {
             error "Unknown event name $event"
         }
         # Note: [dict with] can't be used here: it only writes back
         # variables that were keys at entry, so a handler for a new
         # event name on an existing node would be silently dropped.
-        set curList [if {[dict exists $stateTriggerDict $node $event]} {
-            dict get $stateTriggerDict $node $event
-        }]
-        lappend curList $command
+        set curList [dict-list-get $stateTriggerDict $node $event]
+        if {$persistent} {
+            if {[string match ::tkhtml::node* $node]} {
+                error "-persistent accepts \"\" (global), a tag or tag.class,\
+ not a node handle: $node"
+            }
+            set plist [dict-list-get $myPersistentTriggerDict $node $event]
+            # Persistent handlers sit in front of the others (see
+            # install-mouse-handlers); keep that order here as well.
+            set curList [linsert $curList [llength $plist] $command]
+            lappend plist $command
+            dict set myPersistentTriggerDict $node $event $plist
+        } else {
+            lappend curList $command
+        }
         dict set stateTriggerDict $node $event $curList
     }
 
-    method {node event clear} {node event} {
+    #
+    #   $self node event clear ?-persistent? NODE EVENT
+    #
+    method {node event clear} {args} {
+        set persistent [cut-persistent-opt args]
+        lassign $args node event
+        if {$persistent} {
+            dict set myPersistentTriggerDict $node $event {}
+        }
         dict set stateTriggerDict $node $event {}
     }
 
@@ -351,8 +419,8 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
     method {node event apply} {event node cmd args} {
         # XXX: What kind of API should we have?
         set rc [catch {
-            apply [list {self win selfns node this args} $cmd] \
-                $self $win $selfns $node $node {*}$args
+            apply [list {self win selfns node this event args} $cmd] \
+                $self $win $selfns $node $node $event {*}$args
         } result opts]
         switch $rc {
             3 { return -code break }
@@ -487,6 +555,19 @@ snit::macro ::minhtmltk::taghelper::mouseevent0 {} {
         bind $win <ButtonRelease-1> [list $self Release %W %x %y]
         
         bind $win <<Copy>> [list $win selection toClipboard]
+
+        #
+        # Re-install persistent handlers first, so that they run before
+        # the built-in tag handlers below (and can [return -code break]
+        # to prevent the default action, e.g. <a> navigation).
+        #
+        dict for {node evDict} $myPersistentTriggerDict {
+            dict for {event cmdList} $evDict {
+                foreach cmd $cmdList {
+                    $self node event on $node $event $cmd
+                }
+            }
+        }
 
         #
         # Install all [~ node event tag *] handlers

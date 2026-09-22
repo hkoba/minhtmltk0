@@ -158,7 +158,7 @@ test $P-$D-parameters-[incr I] "Visible parameters in event handler" -body {
 
     set ::out
 
-} -result [lsort {self win selfns node this args}]
+} -result [lsort {self win selfns node this event args}]
 
 #========================================
 # Global handlers run once per event, with $node = innermost target.
@@ -532,6 +532,103 @@ test $P-$D-button-click "button click" -body {
 
 } -result {::DUMMY done {q1 ok} Minhtmltk}
 
+
+#========================================
+# $event in handlers, and -persistent handlers.
+
+incr D
+.ht Reset
+test $P-$D-event-var-[incr I] "\$event is visible in handlers" -body {
+
+    .ht parse -final {
+	<form><input type="submit" name="go" value="Go"></form>
+    }
+
+    set ::out ""
+    .ht on submit { lappend ::out $event [$node attr name] }
+    .ht node event trigger [.ht search input] click
+
+    set ::out
+
+} -result {submit go}
+
+incr D
+.ht Reset
+test $P-$D-persistent-survives-load-[incr I] "on -persistent survives load" -body {
+
+    set ::out ""
+    .ht on -persistent click { lappend ::out [$node tag] }
+    .ht node event on -persistent h2 click { lappend ::out tag-h2 }
+
+    .ht load "" {<h2>First</h2>}
+    invokeClick [.ht search h2]
+
+    .ht load "" {<h2>Second</h2>}
+    invokeClick [.ht search h2]
+
+    set ::out
+
+} -result {tag-h2 h2 tag-h2 h2}
+
+test $P-$D-persistent-dump-[incr I] "dump-persistent" -body {
+
+    dict keys [.ht node event dump-persistent]
+
+} -result {{} h2}
+
+test $P-$D-persistent-rejects-node-[incr I] "-persistent rejects node handles" -body {
+
+    catch {.ht node event on -persistent [.ht search h2] click {}} msg
+    regexp {not a node handle} $msg
+
+} -result 1
+
+test $P-$D-persistent-before-builtin-[incr I] "persistent a click precedes the built-in one" -body {
+
+    .ht node event on -persistent a click {
+	lappend ::out prevented-[$node attr href]
+	return -code break
+    }
+    .ht load "" {<a href="no-such-file.html">link</a>}
+
+    set ::out ""
+    invokeClick [.ht search a]
+
+    list $::out [.ht location get] \
+	[llength [dict get [.ht node event dump-handlers] a click]]
+
+} -result {prevented-no-such-file.html {} 2}
+# (the global click handler is skipped too: break stops all remaining
+# handlers of the event)
+
+test $P-$D-persistent-order-live-[incr I] "-persistent registered on a live document also goes first" -body {
+
+    .ht node event on -persistent a click { lappend ::out second-persistent }
+
+    lrange [dict get [.ht node event dump-handlers] a click] 0 1
+
+} -result [list {
+	lappend ::out prevented-[$node attr href]
+	return -code break
+    } { lappend ::out second-persistent }]
+
+test $P-$D-persistent-remove-[incr I] "node event remove -persistent" -body {
+
+    .ht node event remove -persistent a click { lappend ::out second-persistent }
+    .ht node event remove -persistent a click {
+	lappend ::out prevented-[$node attr href]
+	return -code break
+    }
+    .ht node event clear -persistent "" click
+    .ht node event clear -persistent h2 click
+
+    .ht load "" {<h2>Third</h2>}
+    set ::out ""
+    invokeClick [.ht search h2]
+
+    list $::out [.ht node event dump-persistent]
+
+} -result {{} {{} {click {}} h2 {click {}} a {click {}}}}
 
 #----------------------------------------
 

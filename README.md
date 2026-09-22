@@ -131,8 +131,8 @@ $node property background-color         ;# computed style
 ### Events
 
 Handlers can be attached globally or per node. The handler body is run
-via `apply` with `self`, `win`, `node` (alias `this`) and `args`
-available.
+via `apply` with `self`, `win`, `node` (alias `this`), `event` and
+`args` available.
 
 ```tcl
 .browser on ready  { puts "document ready" }
@@ -152,6 +152,23 @@ registered on a specific node shadows the tag/class handlers for that
 node (this is also how the built-in `<a>` navigation can be overridden
 for one link). A handler can stop the remaining handlers of the same
 event with `return -code break`.
+
+Handlers are cleared whenever a document is loaded (`load`, `nav
+loadURI`, `-html`). To keep one across documents, register it with
+`-persistent`; this is allowed for global, tag and `tag.class` handlers
+(not for node handles, which die with the document). Persistent
+handlers run before the built-in ones, so they can prevent the default
+action:
+
+```tcl
+.browser on -persistent ready { puts "another document is ready" }
+.browser node event on -persistent a click {
+    if {[string match app:* [$node attr href]]} {
+        handle-app-link [$node attr href]
+        return -code break     ;# skip the built-in navigation
+    }
+}
+```
 
 ### Document scripts and `-allow-script`
 

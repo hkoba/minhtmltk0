@@ -131,8 +131,8 @@ $node property background-color         ;# 計算済みスタイル
 ### イベント
 
 ハンドラは全体にもノード単位にも登録できます。ハンドラ本体は `apply`
-経由で実行され、`self`, `win`, `node`(別名 `this`)、`args` が使え
-ます。
+経由で実行され、`self`, `win`, `node`(別名 `this`)、`event`、`args`
+が使えます。
 
 ```tcl
 .browser on ready  { puts "document ready" }
@@ -151,6 +151,22 @@ $node property background-color         ;# 計算済みスタイル
 タグ/クラス別ハンドラを隠します(組込みの `<a>` ナビゲーションを
 リンク単位で差し替える手段でもあります)。ハンドラ内で
 `return -code break` すると、同じイベントの残りのハンドラは呼ばれません。
+
+ハンドラは文書をロードするたび(`load`, `nav loadURI`, `-html`)に消えます。
+文書をまたいで残したいものは `-persistent` を付けて登録します。対象は
+グローバル、タグ、`tag.class` のハンドラで、ノード handle には使えません
+(ノードは文書と共に消えるため)。永続ハンドラは組込みのハンドラより
+先に実行されるので、既定の動作を抑止することもできます:
+
+```tcl
+.browser on -persistent ready { puts "another document is ready" }
+.browser node event on -persistent a click {
+    if {[string match app:* [$node attr href]]} {
+        handle-app-link [$node attr href]
+        return -code break     ;# 組込みのナビゲーションを行わない
+    }
+}
+```
 
 ### 文書中のスクリプトと `-allow-script`
 
