@@ -244,6 +244,19 @@ proc app-read {scheme uriObj args} {
 pack [minhtmltk .browser -scheme-command app-read -uri app:/start]
 ```
 
+## Using from Python (tkinter)
+
+`python/` contains a tkinter binding: `HtmlView` wraps the widget, and
+form controls, buttons and links can be handled by Python callables
+(`view.on('submit', func)`), or whole pages served from Python through
+an `app:` URI scheme. See [python/README.md](python/README.md).
+
+```python
+from minhtmltk import HtmlView
+view = HtmlView(root, html='<form><input name=q><input type=submit></form>')
+view.on('submit', lambda ev: print(ev.form.get_all()))
+```
+
 ## Running the tests
 
 ```sh
@@ -251,6 +264,9 @@ cd tests
 tclsh all.tcl                 # needs an X display
 # or, headless:
 xvfb-run -a tclsh all.tcl
+
+# the Python binding
+cd ../python/tests && xvfb-run -a python3 -m unittest
 ```
 
 ## License

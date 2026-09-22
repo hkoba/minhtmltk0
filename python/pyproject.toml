@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minhtmltk"
+version = "0.1.0"
+description = "tkinter binding for minhtmltk, a minimal HTML widget on Tkhtml3"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "BSD"}
+
+[tool.setuptools]
+packages = ["minhtmltk"]
