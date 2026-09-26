@@ -323,6 +323,7 @@ snit::widget minhtmltk {
     ::minhtmltk::taghelper link
     ::minhtmltk::taghelper imagecmd
     ::minhtmltk::taghelper object
+    ::minhtmltk::taghelper details
 
     # To be handled
     list {
