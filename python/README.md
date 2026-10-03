@@ -52,7 +52,7 @@ python3 examples/app_scheme.py    # pages served from Python via app: URIs
 
 A `tkinter.Widget`; options are the widget's Tcl options with `_` for
 `-` (`html=`, `uri=`, `file=`, `home=`, `navigator=`, `scrollbar=`,
-`debug=`, `use_tk_button=`, ...). Document-supplied Tcl (`<script
+`auto=`, `debug=`, `use_tk_button=`, ...). Document-supplied Tcl (`<script
 type="tcl">`, `onclick="..."`) is only run with `allow_script=True`.
 
 Documents:
@@ -64,8 +64,18 @@ Documents:
 | `location`, `history()`, `back()`, `forward()` | |
 | `text()`, `source()`, `parameter(name)` | visible text, HTML source, query parameter |
 | `search(selector)`, `find(selector)` | CSS selector -> `Node` list / first `Node` |
-| `see(node_or_selector)` | scroll into view |
+| `see(node_or_selector)` | scroll into view; `False` if a selector matched nothing |
+| `capture()` | the rendered document as a `tkinter.PhotoImage` (e.g. to check pixels in tests) |
 | `errors()`, `log()` | logged parse/handler errors |
+
+`scrollbar=` is `'both'`, `'vertical'`, `'horizontal'` or `'none'`;
+`auto=` (same values) says which of them hide while the document fits.
+Loading a document does not move the keyboard focus to the view; a
+click does.
+
+`minhtmltk.__version__` is the version of this binding and
+`minhtmltk.tcl_version(root.tk)` that of the loaded Tcl library;
+creating a view raises `RuntimeError` if the Tcl library is too old.
 
 ### Events: `view.on(event, callback, selector=None) -> Handler`
 

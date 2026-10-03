@@ -5,13 +5,18 @@
 
 package require Tkhtml 3
 package require snit
-package require widget::scrolledwindow
+package require widget::scrolledwindow; # for <textarea> (taghelper/form.tcl)
 #package require BWidget
 
 source [file dirname [info script]]/utils.tcl
 
 namespace eval ::minhtmltk {
     namespace import ::minhtmltk::utils::*
+
+    # Keep in sync with pkgIndex.tcl and python/pyproject.toml.
+    # ([set], not [variable]: once the snit type exists, this
+    # namespace has its own [variable] command.)
+    set ::minhtmltk::version 0.2
 }
 
 source [file dirname [info script]]/formstate1.tcl
@@ -68,6 +73,13 @@ snit::widget minhtmltk {
     option -html ""
 
     option -install-default-handlers yes
+
+    # Which scrollbars exist (creation-time only), and which of them
+    # are hidden while the document fits: both|vertical|horizontal|none.
+    option -scrollbar -default both -readonly yes \
+        -type {snit::enum -values {both vertical horizontal none}}
+    option -auto -default both -configuremethod Configure-auto \
+        -type {snit::enum -values {both vertical horizontal none}}
 
     variable myLogHistory [list]
     variable stateCurrentLog [list]
@@ -148,10 +160,10 @@ snit::widget minhtmltk {
         }
         set options(-allow-script) $allowScript
 
-        set sw [widget::scrolledwindow $win.sw \
-                   -scrollbar [from args -scrollbar both]]
-        install myHtml using html $sw.html
-        $sw setwidget $myHtml
+        set options(-scrollbar) [from args -scrollbar both]
+        set options(-auto) [from args -auto both]
+        install myHtml using html $win.html
+        $self scroll install
 
         if {[from args -install-default-handlers yes]} {
             $self Reset
@@ -162,8 +174,75 @@ snit::widget minhtmltk {
         if {[$self location get] eq ""} {
             $self nav gotoHome
         }
+    }
 
-        pack $sw -fill both -expand yes
+    #========================================
+    # Scrollbars
+    #
+    # They are managed here, directly in the hull, rather than by
+    # widget::scrolledwindow: that saves one mapped window per widget,
+    # and its auto-hide runs [update idletasks] from inside the
+    # -yscrollcommand, which re-enters Tkhtml's update callback and
+    # makes it lose pending scroll/redraw requests (e.g. a [See] right
+    # after [load]). Here a scrollbar is only gridded/removed; the
+    # resulting geometry change is handled later by the event loop.
+    #========================================
+
+    typevariable ourScrollbarSpec {
+        y {name vscroll orient vertical   view yview row 0 column 1 sticky ns}
+        x {name hscroll orient horizontal view xview row 1 column 0 sticky ew}
+    }
+    variable myScrollbarShown -array {x 0 y 0}
+
+    method {scroll install} {} {
+        grid $myHtml -row 0 -column 0 -sticky news
+        grid rowconfigure    $win 0 -weight 1
+        grid columnconfigure $win 0 -weight 1
+        dict for {axis spec} $ourScrollbarSpec {
+            dict with spec {}
+            if {$options(-scrollbar) ni [list both $orient]} continue
+            ttk::scrollbar $win.$name -orient $orient -takefocus 0 \
+                -command [list $myHtml $view]
+            $myHtml configure -${axis}scrollcommand \
+                [list $self scroll set $axis]
+            $self scroll update $axis
+        }
+    }
+
+    # The -xscrollcommand/-yscrollcommand of the Tkhtml widget.
+    method {scroll set} {axis first last} {
+        $win.[dict get $ourScrollbarSpec $axis name] set $first $last
+        $self scroll update $axis
+    }
+
+    # Show or hide the scrollbar of $axis according to -auto.
+    method {scroll update} axis {
+        dict with ourScrollbarSpec $axis {}
+        set sb $win.$name
+        if {![winfo exists $sb]} return
+        lassign [$sb get] first last
+        set show [expr {$options(-auto) ni [list both $orient]
+                        || $first > 0 || $last < 1}]
+        if {$show == $myScrollbarShown($axis)} return
+        set myScrollbarShown($axis) $show
+        if {$show} {
+            grid $sb -row $row -column $column -sticky $sticky
+        } else {
+            grid remove $sb
+        }
+    }
+
+    method Configure-auto {option value} {
+        set options($option) $value
+        foreach axis {x y} {
+            $self scroll update $axis
+        }
+    }
+
+    # The scrollbar widget of $axis (x or y), or "" if it was not created.
+    method {scroll bar} axis {
+        set sb $win.[dict get $ourScrollbarSpec $axis name]
+        expr {[winfo exists $sb] ? $sb : ""}
     }
 
     destructor {
@@ -183,7 +262,8 @@ snit::widget minhtmltk {
 
         $self install-html-handlers
         
-        bindtags $myHtml [luniq [linsert-lsearch [bindtags $myHtml] . \
+        bindtags $myHtml [luniq [linsert-lsearch [bindtags $myHtml] \
+                                     [winfo toplevel $win] \
                                      $win $ourClass]]
 
         $self install-mouse-handlers
@@ -358,9 +438,9 @@ snit::widget minhtmltk {
     # keyboard event handling
     #========================================
 
+    # Keyboard focus is not taken here (this runs on every [load]);
+    # the widget gets it when it is clicked (see Press).
     method install-keyboard-handlers {} {
-	focus $win
-
         bind $win <KeyPress-Up>     [list $myHtml yview scroll -1 units]
         bind $win <KeyPress-Down>   [list $myHtml yview scroll  1 units]
         bind $win <KeyPress-Return> [list $myHtml yview scroll  1 units]
@@ -428,10 +508,11 @@ snit::widget minhtmltk {
             lindex [$self search $node_or_selector] 0
         }]
         # puts Seeing-$node_or_selector->$node
-        if {$node eq ""} return
-        
-	$self yview $node
-	# XXX: 
+        if {$node eq ""} {
+            return 0
+        }
+        $self yview $node
+        return 1
     }
 
     #========================================
@@ -472,11 +553,14 @@ if {![info level] && [info exists ::argv0]
 
     pack [minhtmltk .win {*}[minhtmltk::parsePosixOpts ::argv]] \
         -fill both -expand yes
+    focus .win
 
     if {$::argv ne ""} {
         puts [.win {*}$::argv]
     }
 }
+
+package provide minhtmltk $::minhtmltk::version
 
 list ::minhtmltk
 

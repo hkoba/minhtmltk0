@@ -13,6 +13,14 @@ snit::macro ::minhtmltk::taghelper::imagecmd {} {
 
     variable stateImageCache -array {}
 
+    # Tkhtml's own [image] subcommand (a photo image holding a rendering
+    # of the whole document) is hidden by the [image ...] methods of
+    # this macro, so it is exposed under this name. The caller owns the
+    # returned image and should [image delete] it.
+    method {image capture} args {
+        $myHtml image {*}$args
+    }
+
     method {image install} {} {
         $myHtml configure -imagecmd [list $self image load]
     }

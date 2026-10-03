@@ -21,6 +21,7 @@ in Tcl. This file is the entry point; the details live in `doc/`.
 
 ```
 minhtmltk0.tcl        the snit::widget `minhtmltk` (modulino: source it, or run with wish)
+pkgIndex.tcl          `package require minhtmltk` (version: also in minhtmltk0.tcl, python/pyproject.toml)
 taghelper.tcl         registry of tag handlers + the macro loader (sources taghelper/*.tcl)
 taghelper/*.tcl       snit::macros mixed into the widget: form, style, anchor, link,
                       imagecmd, object, mouseevent0 (event dispatch), errorlogger, nodeutil
@@ -47,7 +48,7 @@ cd python/tests && xvfb-run -a python3 -m unittest -v    # Python suite (no pyte
 
 Requirements: Tcl/Tk 8.6 or 9.0, Tkhtml 3 **built for the same Tcl
 major version** (this is the usual failure), tcllib (`snit`,
-`dicttool`), tklib (`widget::scrolledwindow`, `tooltip`). Python's
+`dicttool`), tklib (`widget::scrolledwindow` for `<textarea>`, `tooltip`). Python's
 `_tkinter` must match too: `python3 -c 'import tkinter; print(tkinter.TclVersion)'`.
 
 Trap: a non-interactive `tclsh` that does `package require Tkhtml` never

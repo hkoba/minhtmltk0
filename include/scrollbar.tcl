@@ -9,13 +9,9 @@ snit::method minhtmltk {scrollbar Fit} {} {
 }
 
 snit::method minhtmltk {scrollbar update} {} {
-    foreach sb {hscroll vscroll} {
-        set w $win.sw.$sb
-        $w set {*}[{*}[$w cget -command]]
-    }
-    if {[$win.sw info methods _setdata] ne ""} {
-        $win.sw _setdata
-        # puts [list yDelta old:$yDelta new:[$self scrollbar hiddenHeight]]
+    foreach axis {x y} {
+        if {[set w [$self scroll bar $axis]] eq ""} continue
+        $self scroll set $axis {*}[{*}[$w cget -command]]
     }
 }
 
@@ -26,7 +22,7 @@ snit::method minhtmltk {scrollbar hiddenWidth} {} {
 }
 
 snit::method minhtmltk {scrollbar horizontalRatio} {} {
-    lassign [$win.sw.hscroll get] left right
+    lassign [$myHtml xview] left right
     set ratio [expr {$right - $left}]
 }
 
@@ -46,7 +42,7 @@ snit::method minhtmltk {scrollbar hiddenHeight} {} {
 }
 
 snit::method minhtmltk {scrollbar verticalRatio} {} {
-    lassign [$win.sw.vscroll get] begin end
+    lassign [$myHtml yview] begin end
     set ratio [expr {$end - $begin}]
 }
 

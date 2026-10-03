@@ -87,6 +87,15 @@ class Handler:
         return f"<Handler {self.event} on {where}>"
 
 
+class _AdoptedPhotoImage(tkinter.PhotoImage):
+    """A PhotoImage for an image that already exists on the Tcl side
+    (PhotoImage.__init__ would create a new, empty one under the name)."""
+
+    def __init__(self, master, name):
+        self.name = name
+        self.tk = master.tk
+
+
 class HtmlView(tkinter.Widget):
     """A minhtmltk widget.
 
@@ -95,7 +104,7 @@ class HtmlView(tkinter.Widget):
 
     Keyword options are the widget's Tcl options with `_` for `-`
     (`allow_script`, `navigator`, `home`, `uri`, `file`, `html`,
-    `scrollbar`, `debug`, `use_tk_button`, `scheme_command`, ...).
+    `scrollbar`, `auto`, `debug`, `use_tk_button`, `scheme_command`, ...).
     `allow_script` defaults to False: document-supplied Tcl is not run
     unless asked for.
     """
@@ -212,9 +221,16 @@ class HtmlView(tkinter.Widget):
                                 default))
 
     def see(self, target):
-        """Scroll a Node or CSS selector into view."""
-        self.call("See", target.handle if isinstance(target, Node)
-                  else target)
+        """Scroll a Node or CSS selector into view. Returns False if a
+        selector matched nothing."""
+        return tcl_bool(self.call("See", target.handle
+                                  if isinstance(target, Node) else target))
+
+    def capture(self):
+        """A snapshot of the whole rendered document (not only the
+        visible part) as a `tkinter.PhotoImage`, e.g. to check pixels
+        in tests. It is deleted when the returned object is collected."""
+        return _AdoptedPhotoImage(self, to_str(self.call("image", "capture")))
 
     def errors(self):
         """Parse/handler errors logged for the current document."""

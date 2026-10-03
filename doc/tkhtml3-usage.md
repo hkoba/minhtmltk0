@@ -47,6 +47,8 @@ process alive at EOF (Tk event loop) — end scripts with `exit`.
 | `bbox NODE` | click simulation, `See` | Document coordinates of the node's box; empty for nodes without content. |
 | `text text`, `text offset`, `tag add/remove/configure/delete` | text extraction and the `selection` highlight | Indexes are byte offsets. |
 | `xview`/`yview`, `yview NODE` | scrolling, `See` | Scroll requests are applied at idle time; back-to-back calls overwrite each other (see `wheel scroll`). |
+| `image` | `$w image capture`, Python `capture()` | Renders the whole document into a new photo image (caller deletes it). Not reachable as `$w image`: that prefix belongs to `taghelper/imagecmd.tcl`. |
+| `configure -xscrollcommand/-yscrollcommand` | `scroll set` | Called from inside Tkhtml's idle callback. The script must not enter the event loop (`update`, `update idletasks`): with Tkhtml builds up to bf51fe3 the widget then stops scrolling and repainting for good (see `tests/scrollcmd.test` in tkhtml3 for the fix). Errors go to `bgerror`; under plain Tk that is a modal dialog, so a failing scroll script hangs a test run. |
 | `fragment HTML` | `node set innerHtml` | Parses HTML into orphan nodes for `$node insert`. |
 
 ## Node commands used

@@ -6,9 +6,24 @@ the contract see [tkhtml3-usage.md](tkhtml3-usage.md).
 ## The widget
 
 `minhtmltk0.tcl` defines `snit::widget minhtmltk`. The hull is a frame
-(class `Minhtmltk`) containing a `widget::scrolledwindow` and the
-Tkhtml widget (`$win.sw.html`, reachable as `[$w html]`; unknown
-subcommands are delegated to it via `component myHtml -inherit yes`).
+(class `Minhtmltk`) containing the Tkhtml widget (`$win.html`,
+reachable as `[$w html]`; unknown subcommands are delegated to it via
+`component myHtml -inherit yes`) and its scrollbars (`$win.vscroll`,
+`$win.hscroll`, see `scroll install/set/update`).
+
+The scrollbars are deliberately not a `widget::scrolledwindow`: its
+auto-hide calls `update idletasks` from inside `-yscrollcommand`, which
+re-enters Tkhtml's update callback and loses pending scroll/redraw
+requests (a `See` right after `load` did nothing). `scroll update` only
+grids/removes the bar. Keep it that way: **never run the event loop
+from a Tkhtml callback**. It also saves a mapped window per widget,
+which matters under XIM, where every mapped window costs tens of ms.
+
+Things a host application relies on: `load` does not take the focus
+(`Press` does); `$w image ...` is the image loader, Tkhtml's own
+`image` is `image capture`; the version is `::minhtmltk::version`
+(also in `pkgIndex.tcl` and `python/pyproject.toml`, checked by
+`tests/embedding.test`).
 
 The widget body is assembled from **snit::macros** in `taghelper/`:
 each `::minhtmltk::taghelper NAME` line in the widget body expands

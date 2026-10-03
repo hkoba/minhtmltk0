@@ -17,7 +17,7 @@ location/history 管理を備えています。ナビゲーションは、ロー
 - Tcl/Tk 8.6 以降(開発は 9.0 で行っています)
 - Tkhtml 3
 - tcllib (`snit`)
-- tklib (`widget::scrolledwindow`)
+- tklib (`widget::scrolledwindow`、`<textarea>` で使用)
 - tcltls — 任意。`https:` を使う場合のみ必要
 
 ## コマンド行からの使い方
@@ -63,12 +63,14 @@ wish minhtmltk0.tcl --navigator=webnav Open http://localhost:8000/index.html
 
 ## Tcl/Tk スクリプトからの使い方
 
-`minhtmltk0.tcl` を `source` してウィジェットを作ります。package
-index はないので、ソースを置いたパスをそのまま指定してください。
+`minhtmltk0.tcl` を `source` してウィジェットを作ります。ディレクトリを
+`auto_path` に入れて `package require minhtmltk` でも読めます。
+ライブラリの版は `::minhtmltk::version` にあります。
 
 ```tcl
 package require Tk
 source /path/to/minhtmltk/minhtmltk0.tcl
+# または: lappend auto_path /path/to/minhtmltk; package require minhtmltk
 
 pack [minhtmltk .browser -file index.html] -fill both -expand yes
 ```
@@ -107,7 +109,8 @@ tcltls パッケージが必要で、初回使用時に読み込まれます。
 | `-home` | 何も読み込まれていないときに読み込む URI |
 | `-html` | 描画する HTML 文字列 |
 | `-navigator` | navigator の type 名またはオブジェクト(生成時のみ) |
-| `-scrollbar` | `widget::scrolledwindow` に渡される(`both`, `vertical`, ...; 生成時のみ) |
+| `-scrollbar` | 作るスクロールバー: `both`(既定), `vertical`, `horizontal`, `none`(生成時のみ) |
+| `-auto` | 文書が収まっている間は隠すスクロールバー: `both`(既定), `vertical`, `horizontal`, `none` |
 | `-script-type` | どの `<script type=...>` を Tcl として実行するか(後述) |
 | `-allow-script` | 文書中の Tcl 実行を許可するか。デフォルトは `-navigator` に依存(後述) |
 | `-debug` | 真にすると logger の記録を stderr(`-debug-fh`)にも出力 |
@@ -126,7 +129,19 @@ $node property background-color         ;# 計算済みスタイル
 .browser nav history list               ;# 訪問した URI の一覧
 .browser nav history go-offset -1       ;# 戻る
 .browser state parameter get q          ;# 現在 URI のクエリパラメータ
+.browser See $node_or_selector          ;# 見える位置へスクロール。見つからなければ 0
+set img [.browser image capture]        ;# 描画結果を photo image として取得
 ```
+
+`image capture` は Tkhtml 本来の `image` サブコマンドです(`$w image`
+自体は minhtmltk の画像ローダーが使っています)。使い終わったら
+`image delete` してください。`-scrollbar none` のときは
+`-xscrollcommand`/`-yscrollcommand` と `xview`/`yview` で自前の
+スクロールバーを繋げます。
+
+ウィジェットは文書を読み込んだだけではキーボードフォーカスを取らず、
+クリックされたときに取ります。最初から持たせたい場合は自分で `focus`
+を呼んでください。
 
 ### イベント
 

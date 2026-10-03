@@ -1,0 +1,208 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+# GH-11: behaviour that matters when the widget is embedded in a larger
+# application: focus, scrollbars, [image capture], [See], version.
+
+set P minhtmltk
+set type ::$P
+set T GH-11-embedding
+
+set absFn [file normalize [info script]]
+set testDir [file dirname $absFn]
+set libDir [file dirname $testDir]
+
+test $T-init load -body {
+    source [file join $libDir ${P}0.tcl]
+} -result $type
+
+set SHORT {<p>x</p>}
+set LONG "<style>.cur{border:2px solid blue}</style>[string repeat <p>x</p> 200]<p class=cur>here</p>"
+
+proc recreate args {
+    destroy .ht
+    update
+    minhtmltk .ht {*}$args
+    pack .ht -fill both -expand yes
+    update
+}
+
+proc mapped-children w {
+    set res {}
+    foreach c [winfo children $w] {
+        if {[winfo ismapped $c]} {
+            lappend res [winfo name $c]
+        }
+    }
+    lsort $res
+}
+
+#========================================
+# version
+
+test $T-version "package version" -body {
+    list [expr {[package present minhtmltk] eq $::minhtmltk::version}] \
+        [regexp {^\d+\.\d+$} $::minhtmltk::version]
+} -result {1 1}
+
+test $T-version-pkgIndex "pkgIndex.tcl and pyproject.toml agree" -body {
+    set res {}
+    foreach {fn re} {
+        pkgIndex.tcl {package ifneeded minhtmltk (\S+)}
+        python/pyproject.toml {(?n)^version = "(\d+\.\d+)\.\d+"}
+    } {
+        set fh [open [file join $libDir $fn]]
+        set data [read $fh]
+        close $fh
+        regexp $re $data -> v
+        lappend res [expr {$v eq $::minhtmltk::version}]
+    }
+    set res
+} -result {1 1}
+
+#========================================
+# focus
+
+test $T-focus-load "load does not take the focus" -body {
+    recreate
+    entry .e
+    pack .e
+    focus -force .e
+    update
+    .ht load "" $SHORT
+    update
+    focus
+} -result .e
+
+test $T-focus-click "a click does" -body {
+    .ht Press [.ht html] 5 5
+    .ht Release [.ht html] 5 5
+    update
+    focus
+} -cleanup {
+    destroy .e
+} -result .ht.html
+
+#========================================
+# image capture
+
+test $T-image-capture "Tkhtml's image, hidden by the image methods" -body {
+    recreate
+    .ht load "" {<body style="margin:0"><div style="background:#00CC00;height:40px">&nbsp;</div>}
+    update
+    set img [.ht image capture]
+    set res [list [image type $img] [lrange [$img get 20 20] 0 2]]
+    image delete $img
+    set res
+} -result {photo {0 204 0}}
+
+#========================================
+# scrollbars
+
+test $T-scrollbar-windows "the Tkhtml widget is a child of the hull" -body {
+    recreate
+    list [.ht html] [lsort [winfo children .ht]]
+} -result {.ht.html {.ht.hscroll .ht.html .ht.vscroll}}
+
+test $T-scrollbar-auto "scrollbars are hidden while the document fits" -body {
+    set res {}
+    .ht load "" $SHORT
+    update
+    lappend res [mapped-children .ht]
+    .ht load "" $LONG
+    update
+    lappend res [mapped-children .ht]
+    .ht load "" $SHORT
+    update
+    lappend res [mapped-children .ht]
+} -result {html {html vscroll} html}
+
+test $T-scrollbar-auto-none "-auto none: always shown" -body {
+    set res {}
+    recreate -auto none
+    .ht load "" $SHORT
+    update
+    lappend res [mapped-children .ht]
+    .ht configure -auto both
+    update
+    lappend res [mapped-children .ht]
+    .ht configure -auto horizontal
+    update
+    lappend res [mapped-children .ht]
+} -result {{hscroll html vscroll} html {html vscroll}}
+
+test $T-scrollbar-vertical "-scrollbar vertical: no horizontal bar" -body {
+    recreate -scrollbar vertical
+    list [lsort [winfo children .ht]] [.ht scroll bar x] [.ht scroll bar y]
+} -result {{.ht.html .ht.vscroll} {} .ht.vscroll}
+
+test $T-scrollbar-none "-scrollbar none: bring your own" -body {
+    recreate -scrollbar none
+    set ::ysc {}
+    .ht configure -yscrollcommand {apply {args {set ::ysc $args}}}
+    .ht load "" $LONG
+    update
+    list [winfo children .ht] [expr {[lindex $::ysc 1] < 1}]
+} -result {.ht.html 1}
+
+test $T-scrollbar-bad "-scrollbar is validated" -body {
+    destroy .ht
+    minhtmltk .ht -scrollbar diagonal
+} -returnCodes error -match glob -result *diagonal*
+
+#========================================
+# See
+
+foreach auto {both none} {
+    test $T-see-after-load-$auto "See right after load (-auto $auto)" -body {
+        recreate -auto $auto
+        .ht load "" $LONG
+        set res [.ht See .cur]
+        update
+        lappend res [expr {[lindex [.ht yview] 0] > 0.9}]
+        # ... and again on a reload
+        .ht load "" $LONG
+        .ht See .cur
+        update
+        lappend res [expr {[lindex [.ht yview] 0] > 0.9}]
+    } -result {1 1 1}
+}
+
+test $T-see-result "See tells whether the target exists" -body {
+    list [.ht See .cur] [.ht See .nonexistent] \
+        [.ht See [lindex [.ht search .cur] 0]]
+} -result {1 0 1}
+
+#========================================
+# other toplevels
+
+test $T-toplevel "widget in a toplevel other than ." -body {
+    destroy .ht
+    toplevel .t
+    minhtmltk .t.ht
+    pack .t.ht -fill both -expand yes
+    set ::clicked {}
+    .t.ht load "" {<body style="margin:0"><h2 style="margin:0">Hello</h2>}
+    .t.ht on click {lappend ::clicked [$node tag]}
+    update
+    .t.ht Press [.t.ht html] 5 5
+    .t.ht Release [.t.ht html] 5 5
+    set ::clicked
+} -cleanup {
+    destroy .t
+} -result h2
+
+#========================================
+destroy .ht
+
+tcltest::cleanupTests

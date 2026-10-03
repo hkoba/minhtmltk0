@@ -33,7 +33,7 @@ minhtmltk0 は Tkhtml3 のフォーム/リンク/イベント処理を Tcl (snit
 
 補足:
 - Python から見える snit 型コマンドは `minhtmltk`(`minhtmltk0` ではない)。
-  内側の Tkhtml widget は `$w html` または `$w.sw.html`。
+  内側の Tkhtml widget は `$w html`(調査時点では `$w.sw.html`、GH-11 以降は `$w.html`)。
 - Tkhtml の `.so` は Python がリンクする Tcl とメジャーバージョンが一致して
   いる必要がある。この環境は両方 9.0 なので問題なし。配布時はここが最大の
   落とし穴(pip の tkinterweb 同梱バイナリは 8.6 用で使えない)。

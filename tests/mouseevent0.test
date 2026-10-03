@@ -443,11 +443,11 @@ test $P-$D-labelclick-[incr I] "label click with tagged elem" -body {
     update idletask
 
     # XXX: TODO font size abstraction
-    .ht Press   .ht.sw.html 52 23
-    .ht Release .ht.sw.html 52 23
+    .ht Press   [.ht html] 52 23
+    .ht Release [.ht html] 52 23
 
-    .ht Press   .ht.sw.html 122 23
-    .ht Release .ht.sw.html 123 23
+    .ht Press   [.ht html] 122 23
+    .ht Release [.ht html] 123 23
 
     set form [.ht form get 0]
     $form get_all

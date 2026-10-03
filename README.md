@@ -17,7 +17,7 @@ is for you.
 - Tcl/Tk 8.6 or later (developed with 9.0)
 - Tkhtml 3
 - tcllib (`snit`)
-- tklib (`widget::scrolledwindow`)
+- tklib (`widget::scrolledwindow`, used for `<textarea>`)
 - tcltls — optional, only needed for `https:`
 
 ## Running from the command line
@@ -63,12 +63,14 @@ Text can be selected with the mouse (except on clickable elements).
 
 ## Using from a Tcl/Tk script
 
-Source `minhtmltk0.tcl` and create the widget. There is no package
-index; use whatever path you installed the sources under.
+Source `minhtmltk0.tcl` and create the widget; or put the directory
+on `auto_path` and `package require minhtmltk`. The library version is
+in `::minhtmltk::version`.
 
 ```tcl
 package require Tk
 source /path/to/minhtmltk/minhtmltk0.tcl
+# or: lappend auto_path /path/to/minhtmltk; package require minhtmltk
 
 pack [minhtmltk .browser -file index.html] -fill both -expand yes
 ```
@@ -107,7 +109,8 @@ tcltls package, which is loaded on first use.
 | `-home` | URI to load when nothing else is loaded |
 | `-html` | literal HTML to render |
 | `-navigator` | navigator type name or object (creation-time only) |
-| `-scrollbar` | passed to `widget::scrolledwindow` (`both`, `vertical`, ...; creation-time only) |
+| `-scrollbar` | which scrollbars to create: `both` (default), `vertical`, `horizontal`, `none` (creation-time only) |
+| `-auto` | which scrollbars are hidden while the document fits: `both` (default), `vertical`, `horizontal`, `none` |
 | `-script-type` | which `<script type=...>` values are executed as Tcl (see below) |
 | `-allow-script` | whether documents may run Tcl; default depends on `-navigator` (see below) |
 | `-debug` | when true, echo logged errors/messages to stderr (`-debug-fh`) |
@@ -126,7 +129,18 @@ $node property background-color         ;# computed style
 .browser nav history list               ;# visited URIs
 .browser nav history go-offset -1       ;# back
 .browser state parameter get q          ;# query parameter of current URI
+.browser See $node_or_selector          ;# scroll into view; 0 if not found
+set img [.browser image capture]        ;# the rendered document as a photo image
 ```
+
+`image capture` is Tkhtml's own `image` subcommand (`$w image` itself
+is taken by minhtmltk's image loader); `image delete` the result when
+done. With `-scrollbar none`, connect your own scrollbar through
+`-xscrollcommand`/`-yscrollcommand` and `xview`/`yview`.
+
+The widget does not take the keyboard focus when a document is loaded,
+only when it is clicked; call `focus` yourself if it should have it
+from the start.
 
 ### Events
 
