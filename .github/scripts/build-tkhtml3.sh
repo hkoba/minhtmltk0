@@ -8,7 +8,7 @@
 # Requires: gcc, make, curl, tar, tcl-dev, tk-dev (tclConfig.sh/tkConfig.sh).
 set -eu
 
-COMMIT=${1:-bf51fe3e4467a121afaeb3f26be0090d071b6188}
+COMMIT=${1:-a19b03ee4f5edf349c39a13bf2b0230d55327b63}
 PREFIX=${2:-/usr/local}
 # Tcl's default auto_path on Debian includes /usr/local/lib/tcltk.
 LIBDIR=${TKHTML_LIBDIR:-$PREFIX/lib/tcltk}

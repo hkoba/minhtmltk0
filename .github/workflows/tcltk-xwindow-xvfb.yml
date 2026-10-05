@@ -3,7 +3,7 @@ on: [push]
 env:
   # Tkhtml 3 is built from github.com/hkoba/tkhtml3 at this commit
   # (Ubuntu's tk-html3 package is too old: no CSS3 attribute selectors).
-  TKHTML3_COMMIT: bf51fe3e4467a121afaeb3f26be0090d071b6188
+  TKHTML3_COMMIT: a19b03ee4f5edf349c39a13bf2b0230d55327b63
 jobs:
   tcltk:
     runs-on: ubuntu-latest

@@ -183,6 +183,28 @@ test $T-see-result "See tells whether the target exists" -body {
         [.ht See [lindex [.ht search .cur] 0]]
 } -result {1 0 1}
 
+# The Tkhtml side of the same problem (hkoba/tkhtml3 GH-13): a scroll
+# command that enters the event loop, as widget::scrolledwindow's
+# auto-hide does, must not leave the widget unable to scroll. This
+# fails with a Tkhtml older than the one pinned in .github/workflows.
+test $T-tkhtml-scrollcmd-reentrancy "Tkhtml survives update idletasks in -yscrollcommand" -body {
+    recreate -scrollbar none
+    set ::seen 0
+    .ht configure -yscrollcommand {apply {{first last} {
+        if {$last < 1 && !$::seen} {
+            set ::seen 1
+            update idletasks
+        }
+    }}}
+    .ht load "" $LONG
+    .ht See .cur
+    update
+    set res [list $::seen [expr {[lindex [.ht yview] 0] > 0.9}]]
+    .ht yview moveto 0.5
+    update
+    lappend res [format %.2f [lindex [.ht yview] 0]]
+} -result {1 1 0.50}
+
 #========================================
 # other toplevels
 
