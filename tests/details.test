@@ -1,0 +1,117 @@
+#!/bin/sh
+# -*- mode: tcl; coding: utf-8 -*-
+# the next line restarts using tclsh \
+    exec tclsh -encoding utf-8 "$0" ${1+"$@"}
+
+package require tcltest
+tcltest::configure -testdir [file normalize [file dirname [info script]]]
+tcltest::configure -loadfile \
+    [file join [tcltest::testsDirectory] constraints.tcl]
+tcltest::configure {*}$argv
+tcltest::loadTestedCommands
+
+namespace import -force tcltest::*
+
+set P details
+set type ::minhtmltk
+
+test $P-setup setup -body {
+    deleteWindows
+    winfo children .
+} -result ""
+
+test $P-init load -body {
+    set abs [file normalize [info script]]
+    source [file join [file dirname [file dirname $abs]] \
+		minhtmltk0.tcl]
+} -result $type
+
+namespace import ::minhtmltk::utils::*
+
+source [file dirname $abs]/mouse-test-util.tcl
+
+#========================================
+
+test $P-create "" -body {
+    $type .ht -debug yes
+} -result .ht
+
+pack .ht -fill both -expand yes
+
+proc idnode {id} { .ht search "\[id=\"$id\"\]" }
+
+set D 0
+
+incr D
+test $P-$D-closed-by-default "details without open hides its content" -body {
+
+    .ht parse -final {
+	<details id="d"><summary id="s">More</summary>
+	<p id="p">body text</p></details>
+	<p id="outside">outside</p>
+    }
+    update idletask
+
+    list [[idnode s] property display] [[idnode p] property display]
+
+} -result {block none}
+
+incr D
+test $P-$D-summary-click-opens "clicking the summary opens the details" -body {
+
+    invokeClick [idnode s]
+    update idletask
+
+    list [[idnode p] property display] \
+	[[idnode d] attr -default ABSENT open]
+
+} -result {block {}}
+
+incr D
+test $P-$D-content-click-is-noop "clicking open content does not close" -body {
+
+    invokeClick [idnode p]
+    update idletask
+
+    [idnode p] property display
+
+} -result block
+
+incr D
+test $P-$D-summary-click-closes "clicking the summary again closes" -body {
+
+    invokeClick [idnode s]
+    update idletask
+
+    list [[idnode p] property display] \
+	[[idnode d] attr -default ABSENT open]
+
+} -result {none ABSENT}
+
+incr D
+test $P-$D-outside-click-is-noop "clicking outside a details does nothing" -body {
+
+    invokeClick [idnode outside]
+    update idletask
+
+    [idnode p] property display
+
+} -result none
+
+#========================================
+
+incr D
+.ht Reset
+test $P-$D-open-attribute-in-markup "open attribute in markup wins" -body {
+
+    .ht parse -final {
+	<details open id="d2"><summary id="s2">Open</summary>
+	<p id="p2">visible</p></details>
+    }
+    update idletask
+
+    [idnode p2] property display
+
+} -result block
+
+cleanupTests

@@ -17,7 +17,7 @@ location/history 管理を備えています。ナビゲーションは、ロー
 - Tcl/Tk 8.6 以降(開発は 9.0 で行っています)
 - Tkhtml 3
 - tcllib (`snit`)
-- tklib (`widget::scrolledwindow`)
+- tklib (`widget::scrolledwindow`、`<textarea>` で使用)
 - tcltls — 任意。`https:` を使う場合のみ必要
 
 ## コマンド行からの使い方
@@ -63,12 +63,14 @@ wish minhtmltk0.tcl --navigator=webnav Open http://localhost:8000/index.html
 
 ## Tcl/Tk スクリプトからの使い方
 
-`minhtmltk0.tcl` を `source` してウィジェットを作ります。package
-index はないので、ソースを置いたパスをそのまま指定してください。
+`minhtmltk0.tcl` を `source` してウィジェットを作ります。ディレクトリを
+`auto_path` に入れて `package require minhtmltk` でも読めます。
+ライブラリの版は `::minhtmltk::version` にあります。
 
 ```tcl
 package require Tk
 source /path/to/minhtmltk/minhtmltk0.tcl
+# または: lappend auto_path /path/to/minhtmltk; package require minhtmltk
 
 pack [minhtmltk .browser -file index.html] -fill both -expand yes
 ```
@@ -107,7 +109,8 @@ tcltls パッケージが必要で、初回使用時に読み込まれます。
 | `-home` | 何も読み込まれていないときに読み込む URI |
 | `-html` | 描画する HTML 文字列 |
 | `-navigator` | navigator の type 名またはオブジェクト(生成時のみ) |
-| `-scrollbar` | `widget::scrolledwindow` に渡される(`both`, `vertical`, ...; 生成時のみ) |
+| `-scrollbar` | 作るスクロールバー: `both`(既定), `vertical`, `horizontal`, `none`(生成時のみ) |
+| `-auto` | 文書が収まっている間は隠すスクロールバー: `both`(既定), `vertical`, `horizontal`, `none` |
 | `-script-type` | どの `<script type=...>` を Tcl として実行するか(後述) |
 | `-allow-script` | 文書中の Tcl 実行を許可するか。デフォルトは `-navigator` に依存(後述) |
 | `-debug` | 真にすると logger の記録を stderr(`-debug-fh`)にも出力 |
@@ -126,13 +129,25 @@ $node property background-color         ;# 計算済みスタイル
 .browser nav history list               ;# 訪問した URI の一覧
 .browser nav history go-offset -1       ;# 戻る
 .browser state parameter get q          ;# 現在 URI のクエリパラメータ
+.browser See $node_or_selector          ;# 見える位置へスクロール。見つからなければ 0
+set img [.browser image capture]        ;# 描画結果を photo image として取得
 ```
+
+`image capture` は Tkhtml 本来の `image` サブコマンドです(`$w image`
+自体は minhtmltk の画像ローダーが使っています)。使い終わったら
+`image delete` してください。`-scrollbar none` のときは
+`-xscrollcommand`/`-yscrollcommand` と `xview`/`yview` で自前の
+スクロールバーを繋げます。
+
+ウィジェットは文書を読み込んだだけではキーボードフォーカスを取らず、
+クリックされたときに取ります。最初から持たせたい場合は自分で `focus`
+を呼んでください。
 
 ### イベント
 
 ハンドラは全体にもノード単位にも登録できます。ハンドラ本体は `apply`
-経由で実行され、`self`, `win`, `node`(別名 `this`)、`args` が使え
-ます。
+経由で実行され、`self`, `win`, `node`(別名 `this`)、`event`、`args`
+が使えます。
 
 ```tcl
 .browser on ready  { puts "document ready" }
@@ -142,6 +157,31 @@ $node property background-color         ;# 計算済みスタイル
 
 イベント名は `ready`, `click`, `mousedown`, `mouseup`, `mouseover`,
 `mouseout`, `mousemove`, `change`, `submit` などが使えます。
+
+発火のルールはブラウザに倣っています。グローバルハンドラは他のハンドラの
+有無に関係なくイベント 1 回につき 1 回だけ呼ばれ、`node` には最内の
+ターゲットが入ります。タグ名や `tag.class` で登録したハンドラ
+(`node event on h2 click ...`)はバブリングし、一致する祖先ごとに
+1 回ずつ呼ばれます。特定ノードに登録したハンドラは、そのノードの
+タグ/クラス別ハンドラを隠します(組込みの `<a>` ナビゲーションを
+リンク単位で差し替える手段でもあります)。ハンドラ内で
+`return -code break` すると、同じイベントの残りのハンドラは呼ばれません。
+
+ハンドラは文書をロードするたび(`load`, `nav loadURI`, `-html`)に消えます。
+文書をまたいで残したいものは `-persistent` を付けて登録します。対象は
+グローバル、タグ、`tag.class` のハンドラで、ノード handle には使えません
+(ノードは文書と共に消えるため)。永続ハンドラは組込みのハンドラより
+先に実行されるので、既定の動作を抑止することもできます:
+
+```tcl
+.browser on -persistent ready { puts "another document is ready" }
+.browser node event on -persistent a click {
+    if {[string match app:* [$node attr href]]} {
+        handle-app-link [$node attr href]
+        return -code break     ;# 組込みのナビゲーションを行わない
+    }
+}
+```
 
 ### 文書中のスクリプトと `-allow-script`
 
@@ -202,6 +242,41 @@ dict get $res content-type   ;# => image/png
 navigator type に合成します(`navigator/webnav.tcl` 参照)。
 `navigator/samplenav.tcl` は `localnav` の注釈付きコピーです。
 
+アプリケーション自身が提供する scheme なら `-scheme-command` オプションの
+方が簡単です。navigator にハンドラが無い scheme は
+`{*}$cmd $scheme $uriObj ?-mode binary?` の形でこのコマンド接頭辞に
+渡され、同じ response dict を返せばリンク・画像・スタイルシートの
+全てがそこを通ります。
+
+```tcl
+proc app-read {scheme uriObj args} {
+    dict create uri [$uriObj get] content-type text/html \
+        body "<h1>[$uriObj path]</h1>"
+}
+pack [minhtmltk .browser -scheme-command app-read -uri app:/start]
+```
+
+## Python (tkinter) から使う
+
+`python/` に tkinter 用のバインディングがあります。`HtmlView` がウィジェットを
+包み、フォーム入力・ボタン・リンクを Python の関数で処理したり
+(`view.on('submit', func)`)、`app:` スキームでページ自体を Python から
+返したりできます。[python/README.md](python/README.md) を参照してください。
+
+```python
+from minhtmltk import HtmlView
+view = HtmlView(root, html='<form><input name=q><input type=submit></form>')
+view.on('submit', lambda ev: print(ev.form.get_all()))
+```
+
+## 開発者(とコーディングエージェント)向け
+
+- [CLAUDE.md](CLAUDE.md) — 全体像: ファイル構成、実行方法、作法。
+- [doc/architecture.md](doc/architecture.md) — ウィジェットの組み立て方、
+  文書のライフサイクル、フォーム、イベント配送、navigator。
+- [doc/tkhtml3-usage.md](doc/tkhtml3-usage.md) — 本プロジェクトが依存する
+  Tkhtml 3 のコマンドと落とし穴、エンジン側ドキュメントへのリンク。
+
 ## テストの実行
 
 ```sh
@@ -209,6 +284,9 @@ cd tests
 tclsh all.tcl                 # X ディスプレイが必要
 # ヘッドレスなら:
 xvfb-run -a tclsh all.tcl
+
+# Python バインディング
+cd ../python/tests && xvfb-run -a python3 -m unittest
 ```
 
 ## ライセンス

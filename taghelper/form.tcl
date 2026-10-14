@@ -350,7 +350,8 @@ snit::macro ::minhtmltk::taghelper::form {} {
         } else {
             set newValue [if {$selectedList ne ""} {
                 set comment [list redraw set: var $var $selectedList]
-                lsearch -exact $valueList $selectedList
+                # $selectedList holds option indices; take the first.
+                lindex $valueList [lindex $selectedList 0]
             } else {
                 set comment [list redraw reset: var $var to [lindex $valueList 0]]
                 lindex $valueList 0

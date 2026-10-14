@@ -17,7 +17,7 @@ is for you.
 - Tcl/Tk 8.6 or later (developed with 9.0)
 - Tkhtml 3
 - tcllib (`snit`)
-- tklib (`widget::scrolledwindow`)
+- tklib (`widget::scrolledwindow`, used for `<textarea>`)
 - tcltls — optional, only needed for `https:`
 
 ## Running from the command line
@@ -63,12 +63,14 @@ Text can be selected with the mouse (except on clickable elements).
 
 ## Using from a Tcl/Tk script
 
-Source `minhtmltk0.tcl` and create the widget. There is no package
-index; use whatever path you installed the sources under.
+Source `minhtmltk0.tcl` and create the widget; or put the directory
+on `auto_path` and `package require minhtmltk`. The library version is
+in `::minhtmltk::version`.
 
 ```tcl
 package require Tk
 source /path/to/minhtmltk/minhtmltk0.tcl
+# or: lappend auto_path /path/to/minhtmltk; package require minhtmltk
 
 pack [minhtmltk .browser -file index.html] -fill both -expand yes
 ```
@@ -107,7 +109,8 @@ tcltls package, which is loaded on first use.
 | `-home` | URI to load when nothing else is loaded |
 | `-html` | literal HTML to render |
 | `-navigator` | navigator type name or object (creation-time only) |
-| `-scrollbar` | passed to `widget::scrolledwindow` (`both`, `vertical`, ...; creation-time only) |
+| `-scrollbar` | which scrollbars to create: `both` (default), `vertical`, `horizontal`, `none` (creation-time only) |
+| `-auto` | which scrollbars are hidden while the document fits: `both` (default), `vertical`, `horizontal`, `none` |
 | `-script-type` | which `<script type=...>` values are executed as Tcl (see below) |
 | `-allow-script` | whether documents may run Tcl; default depends on `-navigator` (see below) |
 | `-debug` | when true, echo logged errors/messages to stderr (`-debug-fh`) |
@@ -126,13 +129,24 @@ $node property background-color         ;# computed style
 .browser nav history list               ;# visited URIs
 .browser nav history go-offset -1       ;# back
 .browser state parameter get q          ;# query parameter of current URI
+.browser See $node_or_selector          ;# scroll into view; 0 if not found
+set img [.browser image capture]        ;# the rendered document as a photo image
 ```
+
+`image capture` is Tkhtml's own `image` subcommand (`$w image` itself
+is taken by minhtmltk's image loader); `image delete` the result when
+done. With `-scrollbar none`, connect your own scrollbar through
+`-xscrollcommand`/`-yscrollcommand` and `xview`/`yview`.
+
+The widget does not take the keyboard focus when a document is loaded,
+only when it is clicked; call `focus` yourself if it should have it
+from the start.
 
 ### Events
 
 Handlers can be attached globally or per node. The handler body is run
-via `apply` with `self`, `win`, `node` (alias `this`) and `args`
-available.
+via `apply` with `self`, `win`, `node` (alias `this`), `event` and
+`args` available.
 
 ```tcl
 .browser on ready  { puts "document ready" }
@@ -143,6 +157,32 @@ available.
 Supported event names include `ready`, `click`, `mousedown`,
 `mouseup`, `mouseover`, `mouseout`, `mousemove`, `change` and
 `submit`.
+
+Dispatch follows the browser model: a global handler runs once per
+event with `node` bound to the innermost target, regardless of other
+handlers. Handlers keyed by tag name or `tag.class` (`node event on h2
+click ...`) bubble, so each matching ancestor is called once. A handler
+registered on a specific node shadows the tag/class handlers for that
+node (this is also how the built-in `<a>` navigation can be overridden
+for one link). A handler can stop the remaining handlers of the same
+event with `return -code break`.
+
+Handlers are cleared whenever a document is loaded (`load`, `nav
+loadURI`, `-html`). To keep one across documents, register it with
+`-persistent`; this is allowed for global, tag and `tag.class` handlers
+(not for node handles, which die with the document). Persistent
+handlers run before the built-in ones, so they can prevent the default
+action:
+
+```tcl
+.browser on -persistent ready { puts "another document is ready" }
+.browser node event on -persistent a click {
+    if {[string match app:* [$node attr href]]} {
+        handle-app-link [$node attr href]
+        return -code break     ;# skip the built-in navigation
+    }
+}
+```
 
 ### Document scripts and `-allow-script`
 
@@ -204,6 +244,41 @@ To support a new scheme, write a `snit::macro` defining
 into a navigator type (see `navigator/webnav.tcl`).
 `navigator/samplenav.tcl` is an annotated copy of `localnav`.
 
+For schemes served by the application itself, the `-scheme-command`
+option is simpler: any scheme the navigator has no handler for is
+passed to this command prefix as `{*}$cmd $scheme $uriObj ?-mode
+binary?`, and it returns the same response dict. Links, images and
+stylesheets all go through it.
+
+```tcl
+proc app-read {scheme uriObj args} {
+    dict create uri [$uriObj get] content-type text/html \
+        body "<h1>[$uriObj path]</h1>"
+}
+pack [minhtmltk .browser -scheme-command app-read -uri app:/start]
+```
+
+## Using from Python (tkinter)
+
+`python/` contains a tkinter binding: `HtmlView` wraps the widget, and
+form controls, buttons and links can be handled by Python callables
+(`view.on('submit', func)`), or whole pages served from Python through
+an `app:` URI scheme. See [python/README.md](python/README.md).
+
+```python
+from minhtmltk import HtmlView
+view = HtmlView(root, html='<form><input name=q><input type=submit></form>')
+view.on('submit', lambda ev: print(ev.form.get_all()))
+```
+
+## For contributors (and coding agents)
+
+- [CLAUDE.md](CLAUDE.md) — orientation: layout, how to run things, conventions.
+- [doc/architecture.md](doc/architecture.md) — how the widget is assembled,
+  document lifecycle, forms, event dispatch, navigators.
+- [doc/tkhtml3-usage.md](doc/tkhtml3-usage.md) — the Tkhtml 3 commands this
+  project relies on and their traps; links to the engine's own docs.
+
 ## Running the tests
 
 ```sh
@@ -211,6 +286,9 @@ cd tests
 tclsh all.tcl                 # needs an X display
 # or, headless:
 xvfb-run -a tclsh all.tcl
+
+# the Python binding
+cd ../python/tests && xvfb-run -a python3 -m unittest
 ```
 
 ## License
